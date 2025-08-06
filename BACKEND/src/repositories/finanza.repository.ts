@@ -5,7 +5,7 @@ export const FinanzaRepository = {
   async findAll() {
     const db = await getDataSource();
     return db.getRepository(Finanza).find({
-      relations: ['maquina_id', 'usuario_id', 'transaccion_id', 'proveedor_id', 'orden_trabajo_id']
+      relations: ['maquina_id', 'usuario_id', 'transaccion_id', 'orden_trabajo_id']
     });
   },
 
@@ -13,7 +13,7 @@ export const FinanzaRepository = {
     const db = await getDataSource();
     return db.getRepository(Finanza).findOne({
       where: { id },
-      relations: ['maquina_id', 'usuario_id', 'transaccion_id', 'proveedor_id', 'orden_trabajo_id']
+      relations: ['maquina_id', 'usuario_id', 'transaccion_id', 'orden_trabajo_id']
     });
   },
 

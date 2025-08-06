@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { FinanzaService } from '@/services/finanza.service';
+import { corsHeaders } from '@/lib/cors';
 
 export const FinanzaController = {
   
@@ -7,8 +8,10 @@ export const FinanzaController = {
    async get(_req: Request) {
     try {
       const data = await FinanzaService.getFinanzas();
-      return NextResponse.json(data);
-    } catch (error) {
+      return new NextResponse(JSON.stringify(data), {
+          status: 200,
+          headers: corsHeaders
+        });
       console.error('Error en FinanzaController.get:', error);
       return NextResponse.json(
         { 

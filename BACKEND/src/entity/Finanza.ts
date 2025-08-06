@@ -13,8 +13,8 @@ export class Finanza {
   @Column({nullable: false})
   tipo_movimiento!: string;
 
-  @Column({ unique: true, nullable: true })
-  descripcion!: string;
+//   @Column({ unique: true, nullable: true })
+//   descripcion!: string;
 
   @Column({ type: 'decimal', precision: 18, scale: 2, nullable: false })
   monto!: number;
@@ -37,9 +37,9 @@ export class Finanza {
       @JoinColumn({ name: 'transaccion_id' })
   transaccion_id!: Transaccion;
 
-  @ManyToOne(() => Proveedor)
-      @JoinColumn({ name: 'proveedor_id' })
-  proveedor_id!: Proveedor;
+//   @ManyToOne(() => Proveedor)
+//       @JoinColumn({ name: 'proveedor_id' })
+//   proveedor_id!: Proveedor;
 
   @ManyToOne(() => OrdenTrabajo)
       @JoinColumn({ name: 'orden_trabajo_id' })
@@ -51,9 +51,9 @@ export class Finanza {
   @Column({ nullable: true })
   notas!: string;
 
-  @Column({ type: 'datetime', nullable: false })
-  creado_en!: Date;
+//   @Column({ type: 'datetime', nullable: false })
+//   creado_en!: Date;
 
-  @Column({ type: 'datetime', nullable: false })
-  actualizado_en!: Date;
+//   @Column({ type: 'datetime', nullable: false })
+//   actualizado_en!: Date;
 }

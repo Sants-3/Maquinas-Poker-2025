@@ -1,6 +1,11 @@
 import { NextRequest } from 'next/server';
 import { FinanzaController } from '@/controllers/finanza.controller';
 import { authenticateRole } from '@/middleware/auth';
+import { handlePreflight } from '@/lib/cors';
+
+export async function OPTIONS() {
+  return handlePreflight();
+}
 
 export async function GET(req: NextRequest) {
   const auth = await authenticateRole(['admin', 'cliente'])(req);

@@ -67,13 +67,13 @@ export async function GET(
     .text('Teléfono: +504 1234-5678')
     .moveDown();
 
-  // Información del proveedor relacionado a la factura
-  doc
-    .fontSize(12)
-    .text(`PROVEEDOR: ${finanza.proveedor_id?.nombre || 'N/A'}`)
-    .fontSize(10)
-    .text(`Contacto: ${finanza.proveedor_id?.contacto || '-'}`)
-    .moveDown();
+   // doc
+  //   .fontSize(12)
+  //   .text(`PROVEEDOR: ${finanza.proveedor_id?.nombre || 'N/A'}`)
+  //   .fontSize(10)
+  //   .text(`Contacto: ${finanza.proveedor_id?.contacto || '-'}`)
+  //   .moveDown();
+
 
   // Título para sección de detalle con subrayado
   doc.fontSize(12).text('Detalle:', { underline: true }).moveDown(0.2);

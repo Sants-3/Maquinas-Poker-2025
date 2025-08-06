@@ -43,10 +43,9 @@ export default function AdminLayout({ children }) {
               <a href="/admin/proveedores" className="text-decoration-none">
                 Gestión de Proveedores
               </a>
-              {/*
-              <a href="/configuracion" className="text-decoration-none">
-                Configuración
-              </a> */}
+              <a href="/admin/finanzas" className="text-decoration-none">
+                Gestión de Finanzas
+              </a>
               <button className="btn btn-danger" onClick={() => signOut({ callbackUrl: '/' })}>
                 Cerrar Sesión
               </button>

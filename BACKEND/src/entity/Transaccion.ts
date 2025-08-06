@@ -13,8 +13,8 @@ export class Transaccion {
         @JoinColumn({ name: 'maquina_id' })
     maquina!: Maquina;
 
-    // @Column({ nullable: true})
-    // tipo!: string;
+    @Column({ nullable: true })
+    referencia!: string;
 
     @Column({ type: 'decimal', precision: 12, scale: 2, nullable: false })
     monto!: number;
@@ -25,8 +25,8 @@ export class Transaccion {
     @Column({ type: 'datetime', nullable: false })
     fecha_transaccion!: Date;
 
-    @Column({ type: 'datetime', nullable: true })
-    fecha_registro!: Date;
+    // @Column({ type: 'datetime', nullable: true })
+    // fecha_registro!: Date;
 
     @Column({ nullable: true })
     descripcion!: string;
@@ -35,7 +35,7 @@ export class Transaccion {
     // @JoinColumn({ name: 'tipo_transaccion_id' })
     // tipoTransaccion!: TipoTransaccion[];
     @ManyToOne(() => TipoTransaccion)
-        @JoinColumn({ name: 'tipo_transaccion_id' })
+        @JoinColumn({ name: 'tipo_id' })
     tipoTransaccion!: TipoTransaccion;
 
     @Column({ nullable: true })
