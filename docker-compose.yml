@@ -1,0 +1,47 @@
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./FRONTEND/maquinas-poker-cliente:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:4000  
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "4000:4000"  
+    volumes:
+      - ./BACKEND:/app
+      - /app/node_modules
+    depends_on:
+      - db
+    environment:
+      - DB_SERVER=db          
+      - DB_PORT=1433          
+      - DB_USERNAME=sa
+      - DB_PASSWORD=Passjosue258456/*
+      - DB_DATABASE=gestion_maquinas_poker_1
+
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: gestion_maquinas_poker_1
+    ports:
+    - "1433:1433" 
+    environment:
+    - ACCEPT_EULA=Y
+    - SA_PASSWORD=Passjosue258456/*
+    volumes:
+    - gestion_maquinas_poker_1:/var/opt/mssql 
+
+volumes:
+  gestion_maquinas_poker_1:

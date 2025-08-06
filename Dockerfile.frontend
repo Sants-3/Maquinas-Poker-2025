@@ -1,0 +1,15 @@
+FROM node:18-alpine
+
+WORKDIR /app
+COPY FRONTEND/maquinas-poker-cliente/package.json FRONTEND/maquinas-poker-cliente/package-lock.json ./
+RUN npm install
+
+EXPOSE 3000
+
+# Para desarrollo (con hot-reload)
+CMD ["npm", "run", "dev"]
+
+# Para producción:
+# COPY FRONTEND/maquinas-poker-cliente .
+# RUN npm run build
+# CMD ["npm", "start"]

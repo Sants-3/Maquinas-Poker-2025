@@ -1,0 +1,16 @@
+npm install
+npm install bootstrap
+npm install chart.js react-chartjs-2 
+npm install next-auth @types/next-auth bcryptjs
+npm install react-toastify
+npm install pdfkit
+npm install --save-dev @types/pdfkit
+npm install typeorm
+kncdsnc
+npm install --save-dev ts-node typescript
+npm install -D jest jest-environment-jsdom @testing-library/react @testing-library/dom @testing-library/jest-dom ts-node @types/jest
+npm init jest@latest
+npm i ts-jest
+npm i ts-node
+npm i -D eslint-plugin-jest-dom eslint-plugin-testing-library
+npm install dotenv --save-dev

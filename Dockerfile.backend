@@ -1,0 +1,18 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copia archivos de configuración
+COPY BACKEND/package.json BACKEND/package-lock.json ./
+RUN npm install
+
+# Copia todo el código del backend
+COPY BACKEND .
+
+# Instala dependencias de producción (si es necesario)
+RUN npm run build
+
+EXPOSE 4000
+
+# Usa el puerto 4000 para el backend
+CMD ["npm", "run", "dev", "--", "-p", "4000"]
