@@ -62,7 +62,7 @@ export default function MaquinasPage() {
     if (editingMaquina) {
 
       try {
-        const response = await fetch('http://backend:4000/api/inventario/maquinas', {
+        const response = await fetch('http://localhost:4000/api/inventario/maquinas', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({
@@ -102,7 +102,7 @@ export default function MaquinasPage() {
       // Crear nueva máquina
       console.log("Creando nueva máquina con datos:", formData);
       try {
-        const response = await fetch('http://backend:4000/api/inventario/maquinas', {
+        const response = await fetch('http://localhost:4000/api/inventario/maquinas', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({
@@ -160,7 +160,7 @@ export default function MaquinasPage() {
   const handleDelete = async (id) => {
     if (confirm("¿Estás seguro de que quieres eliminar esta máquina?")) {
       try {
-        const response = await fetch(`http://backend:4000/api/inventario/maquinas?id=${id}`, {
+        const response = await fetch(`http://localhost:4000/api/inventario/maquinas?id=${id}`, {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         });
@@ -213,7 +213,7 @@ export default function MaquinasPage() {
   useEffect(() => {
   const fetchData = async () => {
     try {
-      const response = await fetch('http://backend:4000/api/inventario/maquinas', {
+      const response = await fetch('http://localhost:4000/api/inventario/maquinas', {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       });
@@ -229,7 +229,7 @@ export default function MaquinasPage() {
 
     const obtenerUbicaciones = async () => {
       try {
-        const response = await fetch(`http://backend:4000/api/ubicaciones`, {
+        const response = await fetch(`http://localhost:4000/api/ubicaciones`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         });
@@ -243,7 +243,7 @@ export default function MaquinasPage() {
 
     const obtenerProveedores = async () => {
       try {
-        const response = await fetch(`http://backend:4000/api/inventario/proveedor`, {
+        const response = await fetch(`http://localhost:4000/api/inventario/proveedor`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         });
@@ -257,7 +257,7 @@ export default function MaquinasPage() {
 
     const obtenerUsuarios = async () => {
       try {
-        const response = await fetch(`http://backend:4000/api/usuarios`, {
+        const response = await fetch(`http://localhost:4000/api/usuarios`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         });

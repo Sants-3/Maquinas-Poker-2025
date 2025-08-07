@@ -1,286 +1,506 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 export default function InventarioSimple() {
-  const { data: session } = useSession();
-  const [machines, setMachines] = useState([]);
-  const [showRequestModal, setShowRequestModal] = useState(false);
-  const [requestData, setRequestData] = useState({
-    name: '',
-    model: '',
-    location: '',
-    reason: ''
-  });
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [maquinas, setMaquinas] = useState([]);
+  const [filteredMaquinas, setFilteredMaquinas] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'Operativo', 'En Mantenimiento', etc.
+  const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'table'
+
+  // Función para calcular el resumen de máquinas
+  const calculateResumen = (maquinasData) => {
+    const total = maquinasData.length;
+    const operativas = maquinasData.filter(m => m.estado === 'Operativo').length;
+    const mantenimiento = maquinasData.filter(m => m.estado === 'En Mantenimiento').length;
+    const advertencia = maquinasData.filter(m => m.estado === 'Advertencia').length;
+    const error = maquinasData.filter(m => m.estado === 'Error').length;
+    
+    return {
+      total,
+      operativas,
+      mantenimiento,
+      advertencia,
+      error,
+      fueraServicio: error + advertencia
+    };
+  };
+
+  const resumen = calculateResumen(maquinas);
 
   useEffect(() => {
-    if (!session) return;
+    if (status === 'unauthenticated') {
+      router.push('/login');
+    } else if (status === 'authenticated' && session?.user?.role !== 'cliente') {
+      router.push('/no-autorizado');
+    }
+  }, [status, session, router]);
 
-    const fetchMachines = async () => {
+  useEffect(() => {
+    if (status !== 'authenticated' || !session?.accessToken) return;
+
+    const fetchMaquinas = async () => {
       try {
-        const response = await fetch('/api/cliente/machines', {
+        setIsLoading(true);
+        const response = await fetch('http://localhost:4000/api/maquinas', {
+          method: 'GET',
           headers: {
+            'Content-Type': 'application/json',
             'Authorization': `Bearer ${session.accessToken}`
           }
         });
 
         if (!response.ok) {
-          throw new Error(`Error ${response.status}: ${await response.text()}`);
+          throw new Error('Error al cargar las máquinas');
         }
 
         const data = await response.json();
-        setMachines(data);
+        setMaquinas(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error('Error al cargar máquinas:', err);
-        setError(err.message);
-        toast.error(err.message);
+        toast.error(err.message || 'Error al cargar las máquinas');
+        setMaquinas([]);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchMachines();
-  }, [session]);
+    fetchMaquinas();
+  }, [status, session]);
 
-  const handleRequestSubmit = async () => {
-    if (!requestData.name.trim() || !requestData.reason.trim()) {
-      toast.warning('Por favor complete al menos el nombre y el motivo de la solicitud');
-      return;
+  // Filtrar máquinas basado en búsqueda y estado
+  useEffect(() => {
+    let filtered = maquinas;
+
+    // Filtrar por término de búsqueda
+    if (searchTerm) {
+      filtered = filtered.filter(maquina =>
+        maquina.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        maquina.numero_serie?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        maquina.modelo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        maquina.ubicacion?.nombre?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     }
 
-    setIsLoading(true);
-    try {
-      const response = await fetch('/api/cliente/machines/requests', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.accessToken}`
-        },
-        body: JSON.stringify(requestData)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Error al enviar solicitud');
-      }
-
-      toast.success('Solicitud enviada correctamente');
-      setShowRequestModal(false);
-      setRequestData({
-        name: '',
-        model: '',
-        location: '',
-        reason: ''
-      });
-    } catch (err) {
-      console.error('Error al enviar solicitud:', err);
-      toast.error(err.message);
-    } finally {
-      setIsLoading(false);
+    // Filtrar por estado
+    if (filterStatus !== 'all') {
+      filtered = filtered.filter(maquina => maquina.estado === filterStatus);
     }
+
+    setFilteredMaquinas(filtered);
+  }, [maquinas, searchTerm, filterStatus]);
+
+  const getStatusColor = (estado) => {
+    switch (estado) {
+      case 'Operativo': return 'success';
+      case 'En Mantenimiento': return 'warning';
+      case 'Advertencia': return 'warning';
+      case 'Error': return 'danger';
+      default: return 'secondary';
+    }
+  };
+
+  const getStatusIcon = (estado) => {
+    switch (estado) {
+      case 'Operativo': return 'bi-check-circle-fill';
+      case 'En Mantenimiento': return 'bi-tools';
+      case 'Advertencia': return 'bi-exclamation-triangle-fill';
+      case 'Error': return 'bi-x-circle-fill';
+      default: return 'bi-question-circle-fill';
+    }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'No disponible';
+    return new Date(dateString).toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const getDaysUntilMaintenance = (dateString) => {
+    if (!dateString) return null;
+    const today = new Date();
+    const maintenanceDate = new Date(dateString);
+    const diffTime = maintenanceDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
   };
 
   if (isLoading) {
     return (
-      <div className="container py-5 text-center">
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Cargando...</span>
-        </div>
-        <p className="mt-2">Cargando inventario...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="container py-5">
-        <div className="alert alert-danger">
-          <h5 className="alert-heading">Error al cargar el inventario</h5>
-          <p>{error}</p>
-          <button 
-            className="btn btn-danger"
-            onClick={() => window.location.reload()}
-          >
-            Reintentar
-          </button>
+      <div className="min-h-screen d-flex justify-content-center align-items-center" style={{ backgroundColor: '#f8f9fa' }}>
+        <div className="text-center">
+          <div className="spinner-border mb-3" role="status" style={{ width: '3rem', height: '3rem', color: '#6f42c1' }}>
+            <span className="visually-hidden">Cargando...</span>
+          </div>
+          <h5 className="text-muted">Cargando tus máquinas...</h5>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container py-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="mb-0">Inventario de Máquinas de Poker</h1>
-        <button 
-          className="btn btn-primary"
-          onClick={() => setShowRequestModal(true)}
-          disabled={isLoading}
-        >
-          <i className="bi bi-plus-circle me-2"></i>
-          Solicitar Nueva Máquina
-        </button>
-      </div>
-
-      {machines.length === 0 ? (
-        <div className="alert alert-info">
-          No hay máquinas registradas en su inventario
+    <div className="min-h-screen" style={{ backgroundColor: '#f8f9fa' }}>
+      <div className="container-fluid py-4">
+        {/* Header */}
+        <div className="row mb-4">
+          <div className="col">
+            <h1 className="h2 mb-1 text-dark">
+              <i className="bi bi-cpu-fill me-2" style={{ color: '#6f42c1' }}></i>
+              Inventario de Mis Máquinas
+            </h1>
+            <p className="text-muted mb-0">Vista detallada de todas tus máquinas de póker asignadas</p>
+          </div>
         </div>
-      ) : (
-        <div className="row g-3">
-          {machines.map(machine => (
-            <div key={machine.id} className="col-md-6 col-lg-4">
-              <div className={`card h-100 border-${statusColors[machine.status]}`}>
-                <div className={`card-header bg-${statusColors[machine.status]} text-white`}>
-                  <h5 className="card-title mb-0">{machine.name}</h5>
+
+        {/* Métricas principales */}
+        <div className="row g-4 mb-4">
+          <div className="col-md-6 col-lg-3">
+            <div className="card border-0 shadow-sm h-100" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+              <div className="card-body text-white">
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <h6 className="card-title mb-0 fw-semibold opacity-75">Total de Máquinas</h6>
+                  <i className="bi bi-collection fs-4 opacity-75"></i>
                 </div>
-                <div className="card-body">
-                  <div className="mb-2">
-                    <span className="text-muted">ID:</span>
-                    <strong> {machine.id}</strong>
-                  </div>
-                  <div className="mb-2">
-                    <span className="text-muted">Modelo:</span>
-                    <strong> {machine.model}</strong>
-                  </div>
-                  <div className="mb-2">
-                    <span className="text-muted">Estado:</span>
-                    <span className={`badge bg-${statusColors[machine.status]}`}>
-                      {machine.status}
-                    </span>
-                  </div>
-                  <div className="mb-2">
-                    <span className="text-muted">Ubicación:</span>
-                    <strong> {machine.location}</strong>
-                  </div>
-                  <div>
-                    <span className="text-muted">Tarifa por hora:</span>
-                    <strong> ${machine.hourly_rate?.toFixed(2) || '0.00'}</strong>
-                  </div>
-                </div>
-                <div className="card-footer bg-white small text-muted">
-                  Último mantenimiento: {machine.last_maintenance || 'No registrado'}
-                </div>
+                <h2 className="mb-1 fw-bold">{resumen.total}</h2>
+                <small className="opacity-75">Máquinas asignadas</small>
               </div>
             </div>
-          ))}
-        </div>
-      )}
+          </div>
 
-      {/* Modal para solicitar nueva máquina */}
-      {showRequestModal && (
-        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header bg-primary text-white">
-                <h5 className="modal-title">Solicitar Nueva Máquina de Poker</h5>
-                <button 
-                  type="button" 
-                  className="btn-close btn-close-white" 
-                  onClick={() => !isLoading && setShowRequestModal(false)}
-                  disabled={isLoading}
-                ></button>
+          <div className="col-md-6 col-lg-3">
+            <div className="card border-0 shadow-sm h-100" style={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' }}>
+              <div className="card-body text-white">
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <h6 className="card-title mb-0 fw-semibold opacity-75">Operativas</h6>
+                  <i className="bi bi-check-circle-fill fs-4 opacity-75"></i>
+                </div>
+                <h2 className="mb-1 fw-bold">{resumen.operativas}</h2>
+                <small className="opacity-75">
+                  {resumen.total > 0 ? ((resumen.operativas / resumen.total) * 100).toFixed(1) : 0}% del total
+                </small>
               </div>
-              <div className="modal-body">
-                <div className="mb-3">
-                  <label htmlFor="name" className="form-label">
-                    Nombre de la máquina*
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    id="name"
-                    placeholder="Ej: Máquina de Poker Texas Hold'em"
-                    value={requestData.name}
-                    onChange={(e) => setRequestData({...requestData, name: e.target.value})}
-                    required
-                    disabled={isLoading}
-                  />
-                </div>
+            </div>
+          </div>
 
-                <div className="mb-3">
-                  <label htmlFor="model" className="form-label">
-                    Modelo deseado
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    id="model"
-                    placeholder="Ej: IGT Game King"
-                    value={requestData.model}
-                    onChange={(e) => setRequestData({...requestData, model: e.target.value})}
-                    disabled={isLoading}
-                  />
+          <div className="col-md-6 col-lg-3">
+            <div className="card border-0 shadow-sm h-100" style={{ background: 'linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%)' }}>
+              <div className="card-body text-white">
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <h6 className="card-title mb-0 fw-semibold opacity-75">En Mantenimiento</h6>
+                  <i className="bi bi-tools fs-4 opacity-75"></i>
                 </div>
-
-                <div className="mb-3">
-                  <label htmlFor="location" className="form-label">
-                    Ubicación preferida
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    id="location"
-                    placeholder="Ej: Sala Principal, Bar, etc."
-                    value={requestData.location}
-                    onChange={(e) => setRequestData({...requestData, location: e.target.value})}
-                    disabled={isLoading}
-                  />
-                </div>
-
-                <div className="mb-3">
-                  <label htmlFor="reason" className="form-label">
-                    Motivo de la solicitud*
-                  </label>
-                  <textarea
-                    className="form-control"
-                    id="reason"
-                    rows={4}
-                    placeholder="Explique por qué necesita esta nueva máquina..."
-                    value={requestData.reason}
-                    onChange={(e) => setRequestData({...requestData, reason: e.target.value})}
-                    required
-                    disabled={isLoading}
-                  ></textarea>
-                </div>
+                <h2 className="mb-1 fw-bold">{resumen.mantenimiento}</h2>
+                <small className="opacity-75">Requieren servicio</small>
               </div>
-              <div className="modal-footer">
-                <button 
-                  type="button" 
-                  className="btn btn-secondary" 
-                  onClick={() => !isLoading && setShowRequestModal(false)}
-                  disabled={isLoading}
-                >
-                  Cancelar
-                </button>
-                <button 
-                  type="button" 
-                  className="btn btn-primary"
-                  onClick={handleRequestSubmit}
-                  disabled={isLoading || !requestData.name.trim() || !requestData.reason.trim()}
-                >
-                  {isLoading ? (
-                    <>
-                      <span className="spinner-border spinner-border-sm me-2"></span>
-                      Enviando...
-                    </>
-                  ) : 'Enviar Solicitud'}
-                </button>
+            </div>
+          </div>
+
+          <div className="col-md-6 col-lg-3">
+            <div className="card border-0 shadow-sm h-100" style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}>
+              <div className="card-body text-white">
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <h6 className="card-title mb-0 fw-semibold opacity-75">Con Problemas</h6>
+                  <i className="bi bi-exclamation-triangle-fill fs-4 opacity-75"></i>
+                </div>
+                <h2 className="mb-1 fw-bold">{resumen.fueraServicio}</h2>
+                <small className="opacity-75">Requieren atención</small>
               </div>
             </div>
           </div>
         </div>
-      )}
+
+        {/* Controles de filtrado y vista */}
+        <div className="card border-0 shadow-sm mb-4">
+          <div className="card-body" style={{ backgroundColor: '#ffffff' }}>
+            <div className="row g-3 align-items-center">
+              <div className="col-md-4">
+                <div className="input-group">
+                  <span className="input-group-text" style={{ backgroundColor: '#e3f2fd', border: '1px solid #bbdefb' }}>
+                    <i className="bi bi-search" style={{ color: '#1976d2' }}></i>
+                  </span>
+                  <input
+                    type="text"
+                    className="form-control"
+                    style={{ border: '1px solid #bbdefb' }}
+                    placeholder="Buscar por nombre, serie, modelo o ubicación..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="col-md-3">
+                <select
+                  className="form-select"
+                  style={{ border: '1px solid #bbdefb' }}
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                >
+                  <option value="all">Todos los estados</option>
+                  <option value="Operativo">Operativo</option>
+                  <option value="En Mantenimiento">En Mantenimiento</option>
+                  <option value="Advertencia">Advertencia</option>
+                  <option value="Error">Error</option>
+                </select>
+              </div>
+              <div className="col-md-3">
+                <small className="text-muted">
+                  Mostrando {filteredMaquinas.length} de {maquinas.length} máquinas
+                </small>
+              </div>
+              <div className="col-md-2">
+                <div className="btn-group w-100" role="group">
+                  <button
+                    type="button"
+                    className={`btn ${viewMode === 'cards' ? 'btn-primary' : 'btn-outline-primary'}`}
+                    onClick={() => setViewMode('cards')}
+                    style={{ borderColor: '#6f42c1', backgroundColor: viewMode === 'cards' ? '#6f42c1' : 'transparent' }}
+                  >
+                    <i className="bi bi-grid-3x3-gap"></i>
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn ${viewMode === 'table' ? 'btn-primary' : 'btn-outline-primary'}`}
+                    onClick={() => setViewMode('table')}
+                    style={{ borderColor: '#6f42c1', backgroundColor: viewMode === 'table' ? '#6f42c1' : 'transparent' }}
+                  >
+                    <i className="bi bi-list"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Contenido principal */}
+        {filteredMaquinas.length === 0 ? (
+          <div className="card border-0 shadow-sm">
+            <div className="card-body text-center py-5" style={{ backgroundColor: '#ffffff' }}>
+              <i className="bi bi-cpu display-1 text-muted mb-3"></i>
+              <h4 className="text-muted mb-2">
+                {maquinas.length === 0 ? 'No tienes máquinas asignadas' : 'No se encontraron máquinas'}
+              </h4>
+              <p className="text-muted">
+                {maquinas.length === 0 
+                  ? 'Contacta con tu administrador para que te asigne máquinas.'
+                  : 'Intenta ajustar los filtros de búsqueda.'
+                }
+              </p>
+              {searchTerm || filterStatus !== 'all' ? (
+                <button 
+                  className="btn btn-outline-primary"
+                  style={{ borderColor: '#6f42c1', color: '#6f42c1' }}
+                  onClick={() => {
+                    setSearchTerm('');
+                    setFilterStatus('all');
+                  }}
+                >
+                  <i className="bi bi-arrow-clockwise me-1"></i>
+                  Limpiar filtros
+                </button>
+              ) : null}
+            </div>
+          </div>
+        ) : (
+          <>
+            {viewMode === 'cards' ? (
+              // Vista de tarjetas detallada
+              <div className="row g-4">
+                {filteredMaquinas.map((maquina) => {
+                  const daysUntilMaintenance = getDaysUntilMaintenance(maquina.proximo_mantenimiento);
+                  
+                  return (
+                    <div key={maquina.id} className="col-md-6 col-lg-4">
+                      <div className="card border-0 shadow-sm h-100" style={{ backgroundColor: '#ffffff' }}>
+                        <div className="card-body">
+                          <div className="d-flex justify-content-between align-items-start mb-3">
+                            <div className="flex-grow-1">
+                              <h5 className="card-title mb-1 fw-bold text-dark">
+                                {maquina.nombre}
+                              </h5>
+                              <p className="text-muted small mb-0">
+                                Serie: {maquina.numero_serie}
+                              </p>
+                            </div>
+                            <span className={`badge bg-${getStatusColor(maquina.estado)} fs-6`}>
+                              <i className={`bi ${getStatusIcon(maquina.estado)} me-1`}></i>
+                              {maquina.estado}
+                            </span>
+                          </div>
+
+                          <div className="mb-3">
+                            <p className="text-muted small mb-2">Información General</p>
+                            <div className="row g-2">
+                              <div className="col-6">
+                                <small className="text-muted d-block">Modelo</small>
+                                <span className="fw-semibold">{maquina.modelo}</span>
+                              </div>
+                              <div className="col-6">
+                                <small className="text-muted d-block">ID Máquina</small>
+                                <span className="fw-semibold text-primary">#{maquina.id}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mb-3">
+                            <div className="row g-2">
+                              <div className="col-12">
+                                <small className="text-muted d-block">Ubicación</small>
+                                <span className="fw-semibold">
+                                  <i className="bi bi-geo-alt me-1" style={{ color: '#6f42c1' }}></i>
+                                  {maquina.ubicacion ? maquina.ubicacion.nombre : 'No asignada'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mb-3">
+                            <p className="text-muted small mb-2">Fechas Importantes</p>
+                            <div className="row g-2">
+                              <div className="col-6">
+                                <small className="text-muted d-block">Instalación</small>
+                                <span className="small">{formatDate(maquina.fecha_instalacion)}</span>
+                              </div>
+                              <div className="col-6">
+                                <small className="text-muted d-block">Último Mant.</small>
+                                <span className="small">{formatDate(maquina.ultimo_mantenimiento)}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {daysUntilMaintenance !== null && (
+                            <div className={`alert ${daysUntilMaintenance <= 7 ? 'alert-warning' : 'alert-info'} py-2 mb-3`}>
+                              <small>
+                                <i className="bi bi-calendar-event me-1"></i>
+                                <strong>Próximo mantenimiento:</strong> {daysUntilMaintenance > 0 ? `${daysUntilMaintenance} días` : 'Vencido'}
+                              </small>
+                            </div>
+                          )}
+
+                          <div className="mb-3">
+                            <p className="text-muted small mb-2">Detalles Técnicos</p>
+                            <div className="row g-2">
+                              <div className="col-6">
+                                <small className="text-muted d-block">Fabricante</small>
+                                <span className="small">{maquina.fabricante || 'No especificado'}</span>
+                              </div>
+                              <div className="col-6">
+                                <small className="text-muted d-block">Año</small>
+                                <span className="small">{maquina.año_fabricacion || 'No especificado'}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {maquina.especificaciones_tecnicas && (
+                            <div className="mb-3">
+                              <small className="text-muted d-block mb-1">Especificaciones</small>
+                              <p className="small text-dark mb-0" style={{ fontSize: '0.85rem' }}>
+                                {maquina.especificaciones_tecnicas}
+                              </p>
+                            </div>
+                          )}
+
+                          {maquina.notas && (
+                            <div className="mt-3 pt-3 border-top">
+                              <small className="text-muted d-block mb-1">Notas</small>
+                              <p className="small text-dark mb-0" style={{ fontSize: '0.85rem' }}>
+                                {maquina.notas}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              // Vista de tabla detallada
+              <div className="card border-0 shadow-sm">
+                <div className="card-body p-0" style={{ backgroundColor: '#ffffff' }}>
+                  <div className="table-responsive">
+                    <table className="table table-hover mb-0">
+                      <thead style={{ backgroundColor: '#f8f9fa' }}>
+                        <tr>
+                          <th className="border-0 fw-semibold text-dark">Máquina</th>
+                          <th className="border-0 fw-semibold text-dark">Estado</th>
+                          <th className="border-0 fw-semibold text-dark">Modelo</th>
+                          <th className="border-0 fw-semibold text-dark">Ubicación</th>
+                          <th className="border-0 fw-semibold text-dark">Instalación</th>
+                          <th className="border-0 fw-semibold text-dark">Último Mant.</th>
+                          <th className="border-0 fw-semibold text-dark">Próximo Mant.</th>
+                          <th className="border-0 fw-semibold text-dark">Fabricante</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredMaquinas.map((maquina) => {
+                          const daysUntilMaintenance = getDaysUntilMaintenance(maquina.proximo_mantenimiento);
+                          
+                          return (
+                            <tr key={maquina.id}>
+                              <td>
+                                <div>
+                                  <div className="fw-semibold text-dark">{maquina.nombre}</div>
+                                  <small className="text-muted">
+                                    Serie: {maquina.numero_serie} | ID: #{maquina.id}
+                                  </small>
+                                </div>
+                              </td>
+                              <td>
+                                <span className={`badge bg-${getStatusColor(maquina.estado)}`}>
+                                  <i className={`bi ${getStatusIcon(maquina.estado)} me-1`}></i>
+                                  {maquina.estado}
+                                </span>
+                              </td>
+                              <td>
+                                <div className="fw-semibold">{maquina.modelo}</div>
+                                {maquina.año_fabricacion && (
+                                  <small className="text-muted">Año: {maquina.año_fabricacion}</small>
+                                )}
+                              </td>
+                              <td>
+                                <i className="bi bi-geo-alt me-1" style={{ color: '#6f42c1' }}></i>
+                                {maquina.ubicacion ? maquina.ubicacion.nombre : 'No asignada'}
+                              </td>
+                              <td>
+                                <small>{formatDate(maquina.fecha_instalacion)}</small>
+                              </td>
+                              <td>
+                                <small>{formatDate(maquina.ultimo_mantenimiento)}</small>
+                              </td>
+                              <td>
+                                {daysUntilMaintenance !== null ? (
+                                  <span className={`badge ${daysUntilMaintenance <= 7 ? 'bg-warning' : 'bg-info'}`}>
+                                    {daysUntilMaintenance > 0 ? `${daysUntilMaintenance} días` : 'Vencido'}
+                                  </span>
+                                ) : (
+                                  <small className="text-muted">No programado</small>
+                                )}
+                              </td>
+                              <td>
+                                <small>{maquina.fabricante || 'No especificado'}</small>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
-
-const statusColors = {
-  'Operativa': 'success',
-  'En mantenimiento': 'warning',
-  'Fuera de servicio': 'danger'
-};

@@ -100,7 +100,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('http://backend:4000/api/inventario/maquinas', {
+        const response = await fetch('http://localhost:4000/api/inventario/maquinas', {
             method: 'GET',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
         });

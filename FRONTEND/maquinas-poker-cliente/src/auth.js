@@ -24,7 +24,7 @@ export const authOptions = {
           }
 
           // Llamada a tu API backend
-          const res = await fetch('http://backend:4000/api/usuarios/login', {
+          const res = await fetch('http://localhost:4000/api/usuarios/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 

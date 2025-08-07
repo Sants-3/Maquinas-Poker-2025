@@ -56,7 +56,7 @@ export default function UsuariosPage() {
       }
 
       try {
-        const response = await fetch('http://backend:4000/api/usuarios', {
+        const response = await fetch('http://localhost:4000/api/usuarios', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({
@@ -86,7 +86,7 @@ export default function UsuariosPage() {
       // Crear nuevo usuario
 
       try {
-      const response = await fetch('http://backend:4000/api/usuarios/register', {
+      const response = await fetch('http://localhost:4000/api/usuarios/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
@@ -135,7 +135,7 @@ export default function UsuariosPage() {
   const handleDelete = async (id) => {
     if (confirm("¿Estás seguro de que quieres eliminar este usuario?")) {
       try {
-        const response = await fetch(`http://backend:4000/api/usuarios`, {
+        const response = await fetch(`http://localhost:4000/api/usuarios`, {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ id }),
@@ -173,7 +173,7 @@ export default function UsuariosPage() {
   useEffect(() => {
       const fetchData = async () => {
         try {
-          const response = await fetch('http://backend:4000/api/usuarios', {
+          const response = await fetch('http://localhost:4000/api/usuarios', {
               method: 'GET',
               headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
           });

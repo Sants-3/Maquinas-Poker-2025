@@ -2,6 +2,7 @@
 
 import { Geist, Geist_Mono } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
+import { useEffect } from "react";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.min.css';
 
@@ -18,6 +19,13 @@ const geistMono = Geist_Mono({
 });
 
 export default function RootLayout({ children }) {
+  useEffect(() => {
+    // Cargar Bootstrap JS solo en el cliente
+    if (typeof window !== 'undefined') {
+      import('bootstrap/dist/js/bootstrap.bundle.min.js');
+    }
+  }, []);
+
   return (
     <html lang="en">
       <body

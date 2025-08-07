@@ -69,7 +69,7 @@ export default function ProveedoresPage() {
       }
 
       try {
-        const response = await fetch('http://backend:4000/api/inventario/proveedor', {
+        const response = await fetch('http://localhost:4000/api/inventario/proveedor', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify(modifyProveedor)
@@ -105,7 +105,7 @@ export default function ProveedoresPage() {
       }
       
       try {
-        const response = await fetch('http://backend:4000/api/inventario/proveedor', {
+        const response = await fetch('http://localhost:4000/api/inventario/proveedor', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify(newProveedor)
@@ -148,7 +148,7 @@ export default function ProveedoresPage() {
   const handleDelete = async (id) => {
     if (confirm("¿Estás seguro de que quieres eliminar este proveedor?")) {
       try {
-        const response = await fetch(`http://backend:4000/api/inventario/proveedor?id=${id}`, {
+        const response = await fetch(`http://localhost:4000/api/inventario/proveedor?id=${id}`, {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         });
@@ -207,7 +207,7 @@ export default function ProveedoresPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('http://backend:4000/api/inventario/proveedor', {
+        const response = await fetch('http://localhost:4000/api/inventario/proveedor', {
             method: 'GET',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
         });

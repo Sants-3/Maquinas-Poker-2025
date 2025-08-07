@@ -13,7 +13,7 @@ export default function VerInventario() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('http://backend:4000/api/inventario', {
+        const response = await fetch('http://localhost:4000/api/inventario', {
             method: 'GET',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         });

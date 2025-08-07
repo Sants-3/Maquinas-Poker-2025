@@ -108,13 +108,6 @@ export default function Inventario() {
       {/* Grid of action buttons/cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full max-w-6xl">
         {/* Card: Ver Inventario */}
-        <button
-          className="flex flex-col items-center justify-center p-8 bg-white rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-2 border border-gray-200 hover:border-blue-500 transition-all duration-300 group"
-          onClick={() => router.push('/admin/inventario/verInventario')}
-        >
-          <img src="/inventario.jpg" alt="Inventario" className="w-40 h-40 object-cover rounded-lg mb-4 group-hover:scale-105 transition-transform duration-300" />
-          <span className="text-xl font-semibold text-gray-800 group-hover:text-blue-600 transition-colors duration-300">Ver Inventario</span>
-        </button>
 
         {/* Card: Maquinas */}
         <button

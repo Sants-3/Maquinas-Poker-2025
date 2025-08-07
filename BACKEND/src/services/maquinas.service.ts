@@ -2,8 +2,14 @@ import { MaquinaRepository } from '@/repositories/maquinas.repository';
 import { Maquina } from '@/entity/Maquina';
 
 export const MaquinaService = {
-  async getMaquinas(id?: number) {
-    return id ? MaquinaRepository.findById(id) : MaquinaRepository.findAll();
+  async getMaquinas(id?: number, usuarioId?: number) {
+    if (id) {
+      return MaquinaRepository.findById(id);
+    }
+    if (usuarioId) {
+      return MaquinaRepository.findByUsuarioId(usuarioId);
+    }
+    return MaquinaRepository.findAll();
   },
 
   async createMaquina(data: any) {

@@ -3,25 +3,21 @@ import { FinanzaController } from '@/controllers/finanza.controller';
 import { authenticateRole } from '@/middleware/auth';
 import { handlePreflight } from '@/lib/cors';
 
+type UserRole = 'admin' | 'cliente' | 'tecnico';
+
 export async function OPTIONS() {
   return handlePreflight();
 }
 
-export async function GET(req: NextRequest) {
-  const auth = await authenticateRole(['admin', 'cliente'])(req);
-  if (auth) return auth;
-  return FinanzaController.get(req);
-}
+const withAuth = (roles: UserRole[], handler: (req: NextRequest) => Promise<Response>) => {
+  return async (req: NextRequest) => {
+    const authResponse = await authenticateRole(roles)(req);
+    if (authResponse) return authResponse;
+    return handler(req);
+  };
+};
 
-export async function POST(req: NextRequest) {
-  const auth = await authenticateRole(['admin'])(req);
-  if (auth) return auth;
-  return FinanzaController.post(req);
-}
-
-export async function PUT(req: NextRequest) {
-  const auth = await authenticateRole(['admin'])(req);
-  if (auth) return auth;
-  return FinanzaController.put(req);
-}
-
+export const GET = withAuth(['admin', 'cliente'], FinanzaController.get);
+export const POST = withAuth(['admin'], FinanzaController.post);
+export const PUT = withAuth(['admin'], FinanzaController.put);
+export const DELETE = withAuth(['admin'], FinanzaController.delete);

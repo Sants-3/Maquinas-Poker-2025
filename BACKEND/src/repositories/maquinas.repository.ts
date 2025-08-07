@@ -43,5 +43,14 @@ export const MaquinaRepository = {
   async findUsuarioById(id: number){
     const db = await getDataSource();
     return db.getRepository(User).findOne({ where: { id } });
+  },
+
+  async findByUsuarioId(usuarioId: number) {
+    const db = await getDataSource();
+    return db.getRepository(Maquina).find({ 
+      where: { usuario: { id: usuarioId } }, 
+      relations: ['proveedor', 'ubicacion', 'usuario'] 
+    });
   }
+
 };

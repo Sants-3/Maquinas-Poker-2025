@@ -19,10 +19,10 @@ export default function Home() {
 
   const modules = [
     "Inventario: Ubicación, estado y control en tiempo real de todas tus máquinas.",
-    "Finanzas: Registro y análisis detallado de ingresos y rentabilidad.",
+    "Finanzas: Registro y análisis de ingresos y rentabilidad.",
     "Calidad: Mantenimiento preventivo y correctivo para máxima eficiencia.",
-    "Informes: Dashboards y reportes inteligentes para tomar decisiones estratégicas.",
-    "Servicios de Campo: Órdenes de trabajo y asistencia técnica desde dispositivos móviles.",
+    "Informes: Dashboards para tomar decisiones estratégicas.",
+    "Mantenimiento: Órdenes de trabajo y asistencia técnica.",
   ];
 
   return (
@@ -88,10 +88,9 @@ export default function Home() {
         {/* Teléfono y botones */}
         <div className="hidden md:flex items-center gap-4">
           <span className="text-gray-400 font-medium">(+504) 9232-2344</span>
-          <Link href="/login" className="text-gray-200 hover:text-white font-medium">Iniciar sesión</Link>
           <Link href="/login">
             <button className="bg-green-600 text-white px-5 py-2 rounded hover:bg-green-700 transition-colors shadow-md text-lg font-semibold">
-              Registrarse
+              Iniciar Sesion
             </button>
           </Link>
         </div>

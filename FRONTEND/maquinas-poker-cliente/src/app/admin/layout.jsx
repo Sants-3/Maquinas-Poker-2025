@@ -37,6 +37,14 @@ export default function AdminLayout({ children }) {
               <a href="/admin/inventario" className="text-decoration-none">
                 Gestión de Inventario
               </a>
+              <a href="/admin/reportes-cliente" className="text-decoration-none">
+                <i className="bi bi-chat-square-text me-1"></i>
+                Reportes de Clientes
+              </a>
+              <a href="/admin/ordenes-trabajo" className="text-decoration-none">
+                <i className="bi bi-clipboard-data me-1"></i>
+                Órdenes de Trabajo
+              </a>
               <a href="/admin/usuarios" className="text-decoration-none">
                 Gestión de Usuarios
               </a>

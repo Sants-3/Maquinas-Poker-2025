@@ -4,26 +4,42 @@ import { Finanza } from '@/entity/Finanza';
 export const FinanzaRepository = {
   async findAll() {
     const db = await getDataSource();
-    return db.getRepository(Finanza).find({
-      relations: ['maquina_id', 'usuario_id', 'transaccion_id', 'orden_trabajo_id']
+    return await db.getRepository(Finanza).find({
+      relations: ['maquina', 'usuario', 'transaccion', 'ordenTrabajo'],
     });
   },
 
   async findById(id: number) {
     const db = await getDataSource();
-    return db.getRepository(Finanza).findOne({
+    const finanza = await db.getRepository(Finanza).findOne({
       where: { id },
-      relations: ['maquina_id', 'usuario_id', 'transaccion_id', 'orden_trabajo_id']
+      relations: ['maquina', 'usuario', 'transaccion', 'ordenTrabajo'],
     });
+    
+    if (!finanza) {
+      throw new Error(`Finanza con ID ${id} no encontrada.`);
+    }
+    return finanza;
   },
 
-  async create(finanza: Finanza) {
+  async create(finanza: Partial<Finanza>) {
     const db = await getDataSource();
-    return db.getRepository(Finanza).save(finanza);
+    return await db.getRepository(Finanza).save(finanza);
   },
 
-  async update(finanza: Finanza) {
+  async update(id: number, finanzaData: Partial<Finanza>) {
     const db = await getDataSource();
-    return db.getRepository(Finanza).save(finanza);
+    await db.getRepository(Finanza).update(id, finanzaData);
+    return this.findById(id);
+  },
+
+  async delete(id: number) {
+    const db = await getDataSource();
+    const result = await db.getRepository(Finanza).delete(id);
+
+    if (result.affected === 0) {
+      throw new Error(`No se encontró la finanza con ID ${id} para eliminar.`);
+    }
+    return true;
   }
 };

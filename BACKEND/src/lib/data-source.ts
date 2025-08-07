@@ -18,9 +18,9 @@ import { EvidenciaMantenimiento } from '../entity/EvidenciaMantenimiento';
 export const AppDataSource = new DataSource({
   type: 'mssql',
   host: process.env.DB_SERVER || 'localhost',
-  port: 51862,
+  port: 1433,
   username: process.env.DB_USERNAME || 'sa',
-  password: process.env.DB_PASSWORD || 'Passjosue258456/*',
+  password: process.env.DB_PASSWORD || 'admin123',
   database: process.env.DB_DATABASE || 'gestion_maquinas_poker',
   // Directorio donde TypeORM mapeará las entidades
   entities: [User, Ubicacion, Transaccion, TipoTransaccion, Tecnico, Repuesto, Proveedor, OrdenTrabajo,

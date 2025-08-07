@@ -8,16 +8,9 @@ export async function OPTIONS() {
 }
 
 export async function GET(req: NextRequest) {
-  console.log('=== INICIO GET /api/inventario/maquinas ===');
-  console.log('Headers:', Object.fromEntries(req.headers.entries()));
-  
   const auth = await authenticateRole(['admin', 'tecnico', 'cliente'])(req);
-  if (auth) {
-    console.log('Autenticación falló, retornando:', auth);
-    return auth;
-  }
+  if (auth) return auth;
   
-  console.log('Autenticación exitosa, procediendo al controlador');
   const result = await MaquinaController.get(req);
   return new NextResponse(JSON.stringify(result), {
     status: 200,
@@ -36,7 +29,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  const auth = await authenticateRole(['admin', 'tecnico'])(req);
+  const auth = await authenticateRole(['admin', 'tecnico', 'cliente'])(req);
   if (auth) return auth;
   return MaquinaController.put(req);
 }

@@ -2,7 +2,6 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 't
 import { Maquina } from './Maquina';
 import { User } from './User';
 import { Transaccion } from './Transaccion';
-import { Proveedor } from './Proveedor';
 import { OrdenTrabajo } from './OrdenesTrabajo';
 
 @Entity('finanzas')
@@ -10,11 +9,8 @@ export class Finanza {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({nullable: false})
+  @Column({ nullable: false })
   tipo_movimiento!: string;
-
-//   @Column({ unique: true, nullable: true })
-//   descripcion!: string;
 
   @Column({ type: 'decimal', precision: 18, scale: 2, nullable: false })
   monto!: number;
@@ -25,25 +21,21 @@ export class Finanza {
   @Column({ type: 'datetime', nullable: false })
   fecha_movimiento!: Date;
 
-  @ManyToOne(() => Maquina)
-      @JoinColumn({ name: 'maquina_id' })
-  maquina_id!: Maquina;
+  @ManyToOne(() => Maquina, { eager: true })
+  @JoinColumn({ name: 'maquina_id' })
+  maquina!: Maquina;
 
-  @ManyToOne(() => User)
-      @JoinColumn({ name: 'usuario_id' })
-  usuario_id!: User;
+  @ManyToOne(() => User, { eager: true })
+  @JoinColumn({ name: 'usuario_id' })
+  usuario!: User;
 
-  @ManyToOne(() => Transaccion)
-      @JoinColumn({ name: 'transaccion_id' })
-  transaccion_id!: Transaccion;
+  @ManyToOne(() => Transaccion, { eager: true })
+  @JoinColumn({ name: 'transaccion_id' })
+  transaccion!: Transaccion;
 
-//   @ManyToOne(() => Proveedor)
-//       @JoinColumn({ name: 'proveedor_id' })
-//   proveedor_id!: Proveedor;
-
-  @ManyToOne(() => OrdenTrabajo)
-      @JoinColumn({ name: 'orden_trabajo_id' })
-  orden_trabajo_id!: OrdenTrabajo;
+  @ManyToOne(() => OrdenTrabajo, { eager: true })
+  @JoinColumn({ name: 'orden_trabajo_id' })
+  ordenTrabajo!: OrdenTrabajo;
 
   @Column({ nullable: true })
   referencia_externa!: string;
@@ -51,9 +43,9 @@ export class Finanza {
   @Column({ nullable: true })
   notas!: string;
 
-//   @Column({ type: 'datetime', nullable: false })
-//   creado_en!: Date;
+  @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  creado_en!: Date;
 
-//   @Column({ type: 'datetime', nullable: false })
-//   actualizado_en!: Date;
+  @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
+  actualizado_en!: Date;
 }
