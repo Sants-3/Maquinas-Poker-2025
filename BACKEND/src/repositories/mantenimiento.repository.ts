@@ -1,7 +1,7 @@
 import { getDataSource } from "@/lib/data-source";
 import { Mantenimiento } from "@/entity/Mantenimiento";
 import { OrdenTrabajo } from "@/entity/OrdenesTrabajo";
-import { Tecnico } from "@/entity/Tecnico";
+import { User } from "@/entity/User";
 
 export async function findAllMantenimientosRepository() {
     const db = await getDataSource();
@@ -19,8 +19,8 @@ export async function findOrdenByIdRepository(id: number) {
 
 export async function findTecnicoByIdRepository(id: number) {
     const db = await getDataSource();
-    const tecnicoRepository = db.getRepository(Tecnico);
-    return tecnicoRepository.findOne({ where: { id } });
+    const userRepository = db.getRepository(User);
+    return userRepository.findOne({ where: { id, rol: 'tecnico' } });
 }
 
 export async function createMantenimientoRepository(data: Partial<Mantenimiento>) {

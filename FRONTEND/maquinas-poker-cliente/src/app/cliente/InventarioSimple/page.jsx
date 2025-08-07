@@ -4,6 +4,8 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import ClienteNavbar from '@/components/ClienteNavbar';
+import Link from 'next/link';
 
 export default function InventarioSimple() {
   const { data: session, status } = useSession();
@@ -149,16 +151,38 @@ export default function InventarioSimple() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#f8f9fa' }}>
-      <div className="container-fluid py-4">
+    <>
+      <ClienteNavbar />
+      <div className="min-h-screen" style={{ backgroundColor: '#f8f9fa' }}>
+        <div className="container-fluid py-4">
         {/* Header */}
         <div className="row mb-4">
           <div className="col">
-            <h1 className="h2 mb-1 text-dark">
-              <i className="bi bi-cpu-fill me-2" style={{ color: '#6f42c1' }}></i>
-              Inventario de Mis Máquinas
-            </h1>
-            <p className="text-muted mb-0">Vista detallada de todas tus máquinas de póker asignadas</p>
+            <div className="d-flex justify-content-between align-items-start flex-wrap">
+              <div className="mb-3 mb-md-0">
+                <h1 className="h2 mb-1 text-dark">
+                  <i className="bi bi-cpu-fill me-2" style={{ color: '#6f42c1' }}></i>
+                  Inventario de Mis Máquinas
+                </h1>
+                <p className="text-muted mb-0">Vista detallada de todas tus máquinas de póker asignadas</p>
+              </div>
+              
+              {/* Botones de navegación */}
+              <div className="d-flex gap-2 flex-wrap">
+                <Link href="/cliente/DashboardCliente" className="btn btn-outline-primary">
+                  <i className="bi bi-speedometer2 me-2"></i>
+                  Dashboard
+                </Link>
+                <button className="btn btn-primary active" disabled>
+                  <i className="bi bi-boxes me-2"></i>
+                  Inventario
+                </button>
+                <Link href="/cliente/ReporteInventario" className="btn btn-outline-primary">
+                  <i className="bi bi-file-earmark-text me-2"></i>
+                  Reportes
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -500,7 +524,8 @@ export default function InventarioSimple() {
             )}
           </>
         )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

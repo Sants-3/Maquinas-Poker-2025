@@ -74,5 +74,18 @@ export const MaquinaService = {
     if (!maquina) throw new Error('Máquina no encontrada');
 
     return MaquinaRepository.remove(maquina);
+  },
+
+  async updateMaquinaEstado(id: number, estado: string, notas?: string) {
+    const maquina = await MaquinaRepository.findById(id);
+    if (!maquina) throw new Error('Máquina no encontrada');
+
+    maquina.estado = estado;
+    if (notas) {
+      maquina.notas = notas;
+    }
+    maquina.actualizado_en = new Date();
+
+    return MaquinaRepository.update(maquina);
   }
 };

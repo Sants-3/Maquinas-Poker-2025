@@ -22,10 +22,16 @@ const estadoIcons = {
 };
 
 const prioridadColors = {
-  'Baja': 'success',
-  'Media': 'warning',
-  'Alta': 'danger',
-  'Crítica': 'dark'
+  'baja': 'success',
+  'media': 'warning',
+  'alta': 'danger',
+  'critica': 'dark'
+};
+
+const tipoColors = {
+  'preventivo': 'info',
+  'correctivo': 'warning',
+  'emergencia': 'danger'
 };
 
 export default function OrdenesTrabajoAdmin() {
@@ -35,10 +41,10 @@ export default function OrdenesTrabajoAdmin() {
   const [tecnicos, setTecnicos] = useState([]);
   const [filtroEstado, setFiltroEstado] = useState('todos');
   const [filtroPrioridad, setFiltroPrioridad] = useState('todos');
+  const [filtroTipo, setFiltroTipo] = useState('todos');
   const [isLoading, setIsLoading] = useState(true);
-  const [showAsignarModal, setShowAsignarModal] = useState(false);
+  const [showDetalleModal, setShowDetalleModal] = useState(false);
   const [ordenSeleccionada, setOrdenSeleccionada] = useState(null);
-  const [tecnicoSeleccionado, setTecnicoSeleccionado] = useState('');
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -58,91 +64,60 @@ export default function OrdenesTrabajoAdmin() {
     try {
       setIsLoading(true);
       
-      // Cargar mantenimientos desde la API
-      const mantenimientosResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/mantenimiento`, {
+      // Cargar órdenes de trabajo
+      const ordenesResponse = await fetch(`http://localhost:4000/api/ordenes-trabajo`, {
         headers: {
-          'Authorization': `Bearer ${session.accessToken}`
+          'Authorization': `Bearer ${session.accessToken}`,
+          'Content-Type': 'application/json'
         }
       });
 
-      let mantenimientos = [];
-      if (mantenimientosResponse.ok) {
-        mantenimientos = await mantenimientosResponse.json();
+      if (ordenesResponse.ok) {
+        const ordenesData = await ordenesResponse.json();
+        setOrdenes(ordenesData);
+      } else {
+        throw new Error('Error al cargar órdenes de trabajo');
       }
 
-      // Transformar mantenimientos a formato de órdenes de trabajo
-      const ordenesTransformadas = mantenimientos.map(mant => ({
-        id: mant.id,
-        codigo: `MT-${mant.id.toString().padStart(3, '0')}`,
-        maquina: mant.ordenTrabajo?.maquina || { 
-          id: 0, 
-          nombre: 'Máquina no especificada', 
-          numero_serie: 'N/A' 
-        },
-        descripcion: mant.descripcion || 'Sin descripción',
-        prioridad: mant.tipo === 'Correctivo' ? 'Alta' : 'Media',
-        estado: mant.resultado ? 'completada' : 'pendiente',
-        fecha_creacion: new Date(mant.fecha_programada || Date.now()),
-        cliente_comentarios: mant.observaciones || '',
-        tecnico_asignado: mant.tecnico ? {
-          id: mant.tecnico.id,
-          nombre: mant.tecnico.nombre || 'Técnico asignado'
-        } : null
-      }));
+      // Cargar técnicos
+      const tecnicosResponse = await fetch(`http://localhost:4000/api/usuarios?rol=tecnico`, {
+        headers: {
+          'Authorization': `Bearer ${session.accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
 
-      // Simular datos de técnicos (en producción vendrían de la API)
-      const tecnicosSimulados = [
-        { id: 1, nombre: 'Juan Pérez', especialidad: 'Electrónica' },
-        { id: 2, nombre: 'María García', especialidad: 'Software' },
-        { id: 3, nombre: 'Carlos López', especialidad: 'Mecánica' }
-      ];
+      if (tecnicosResponse.ok) {
+        const tecnicosData = await tecnicosResponse.json();
+        setTecnicos(tecnicosData);
+      }
 
-      setOrdenes(ordenesTransformadas);
-      setTecnicos(tecnicosSimulados);
     } catch (error) {
       console.error('Error al cargar datos:', error);
       toast.error('Error al cargar las órdenes de trabajo');
-      
-      // Datos de fallback en caso de error
       setOrdenes([]);
-      setTecnicos([
-        { id: 1, nombre: 'Juan Pérez', especialidad: 'Electrónica' },
-        { id: 2, nombre: 'María García', especialidad: 'Software' },
-        { id: 3, nombre: 'Carlos López', especialidad: 'Mecánica' }
-      ]);
+      setTecnicos([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleAsignarTecnico = async () => {
-    if (!tecnicoSeleccionado || !ordenSeleccionada) {
-      toast.warning('Seleccione un técnico');
-      return;
-    }
-
-    try {
-      // Simular asignación (en producción sería una llamada a la API)
-      const tecnico = tecnicos.find(t => t.id === parseInt(tecnicoSeleccionado));
-      
-      setOrdenes(prev => prev.map(orden => 
-        orden.id === ordenSeleccionada.id 
-          ? { ...orden, estado: 'asignada', tecnico_asignado: tecnico }
-          : orden
-      ));
-
-      setShowAsignarModal(false);
-      setTecnicoSeleccionado('');
-      setOrdenSeleccionada(null);
-      toast.success(`Orden asignada a ${tecnico.nombre}`);
-    } catch (error) {
-      console.error('Error al asignar técnico:', error);
-      toast.error('Error al asignar técnico');
-    }
-  };
-
   const handleCambiarEstado = async (ordenId, nuevoEstado) => {
     try {
+      const response = await fetch(`http://localhost:4000/api/ordenes-trabajo/${ordenId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${session.accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ estado: nuevoEstado })
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al actualizar estado');
+      }
+
+      // Actualizar estado local
       setOrdenes(prev => prev.map(orden => 
         orden.id === ordenId 
           ? { ...orden, estado: nuevoEstado }
@@ -156,10 +131,22 @@ export default function OrdenesTrabajoAdmin() {
     }
   };
 
+  const formatearFecha = (fecha) => {
+    if (!fecha) return 'N/A';
+    return new Date(fecha).toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   const ordenesFiltradas = ordenes.filter(orden => {
     const cumpleFiltroEstado = filtroEstado === 'todos' || orden.estado === filtroEstado;
-    const cumpleFiltroPrioridad = filtroPrioridad === 'todos' || orden.prioridad === filtroPrioridad;
-    return cumpleFiltroEstado && cumpleFiltroPrioridad;
+    const cumpleFiltroPrioridad = filtroPrioridad === 'todos' || orden.prioridad?.toLowerCase() === filtroPrioridad;
+    const cumpleFiltroTipo = filtroTipo === 'todos' || orden.tipo?.toLowerCase() === filtroTipo;
+    return cumpleFiltroEstado && cumpleFiltroPrioridad && cumpleFiltroTipo;
   });
 
   const contadores = {
@@ -193,7 +180,17 @@ export default function OrdenesTrabajoAdmin() {
               <i className="bi bi-clipboard-data me-2" style={{ color: '#6f42c1' }}></i>
               Gestión de Órdenes de Trabajo
             </h1>
-            <p className="text-muted mb-0">Administra y asigna las órdenes de trabajo reportadas por los clientes</p>
+            <p className="text-muted mb-0">Administra y supervisa todas las órdenes de trabajo del sistema</p>
+          </div>
+          <div className="col-auto">
+            <button 
+              className="btn btn-outline-primary"
+              onClick={cargarDatos}
+              disabled={isLoading}
+            >
+              <i className="bi bi-arrow-clockwise me-1"></i>
+              Actualizar
+            </button>
           </div>
         </div>
 
@@ -245,7 +242,7 @@ export default function OrdenesTrabajoAdmin() {
         <div className="card border-0 shadow-sm mb-4">
           <div className="card-body">
             <div className="row g-3">
-              <div className="col-md-4">
+              <div className="col-md-3">
                 <label className="form-label">Filtrar por Estado:</label>
                 <select 
                   className="form-select"
@@ -260,7 +257,7 @@ export default function OrdenesTrabajoAdmin() {
                   <option value="cancelada">Canceladas</option>
                 </select>
               </div>
-              <div className="col-md-4">
+              <div className="col-md-3">
                 <label className="form-label">Filtrar por Prioridad:</label>
                 <select 
                   className="form-select"
@@ -268,18 +265,32 @@ export default function OrdenesTrabajoAdmin() {
                   onChange={(e) => setFiltroPrioridad(e.target.value)}
                 >
                   <option value="todos">Todas las prioridades</option>
-                  <option value="Baja">Baja</option>
-                  <option value="Media">Media</option>
-                  <option value="Alta">Alta</option>
-                  <option value="Crítica">Crítica</option>
+                  <option value="baja">Baja</option>
+                  <option value="media">Media</option>
+                  <option value="alta">Alta</option>
+                  <option value="critica">Crítica</option>
                 </select>
               </div>
-              <div className="col-md-4 d-flex align-items-end">
+              <div className="col-md-3">
+                <label className="form-label">Filtrar por Tipo:</label>
+                <select 
+                  className="form-select"
+                  value={filtroTipo}
+                  onChange={(e) => setFiltroTipo(e.target.value)}
+                >
+                  <option value="todos">Todos los tipos</option>
+                  <option value="preventivo">Preventivo</option>
+                  <option value="correctivo">Correctivo</option>
+                  <option value="emergencia">Emergencia</option>
+                </select>
+              </div>
+              <div className="col-md-3 d-flex align-items-end">
                 <button 
-                  className="btn btn-outline-secondary"
+                  className="btn btn-outline-secondary w-100"
                   onClick={() => {
                     setFiltroEstado('todos');
                     setFiltroPrioridad('todos');
+                    setFiltroTipo('todos');
                   }}
                 >
                   <i className="bi bi-arrow-clockwise me-1"></i>
@@ -307,24 +318,144 @@ export default function OrdenesTrabajoAdmin() {
                       <th>Código</th>
                       <th>Máquina</th>
                       <th>Descripción</th>
+                      <th>Tipo</th>
                       <th>Prioridad</th>
                       <th>Estado</th>
-                      <th>Técnico</th>
-                      <th>Fecha</th>
+                      <th>Técnico Asignado</th>
+                      <th>Fecha Creación</th>
+                      <th>Tiempo Estimado</th>
                       <th>Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
                     {ordenesFiltradas.map(orden => (
-                      <OrdenTrabajoRow 
-                        key={orden.id}
-                        orden={orden}
-                        onAsignarTecnico={(orden) => {
-                          setOrdenSeleccionada(orden);
-                          setShowAsignarModal(true);
-                        }}
-                        onCambiarEstado={handleCambiarEstado}
-                      />
+                      <tr key={orden.id}>
+                        <td>
+                          <span className="fw-bold text-primary">
+                            {orden.codigo || `OT-${orden.id.toString().padStart(4, '0')}`}
+                          </span>
+                        </td>
+                        <td>
+                          <div>
+                            <div className="fw-semibold">{orden.maquina?.nombre || 'N/A'}</div>
+                            <small className="text-muted">
+                              Serie: {orden.maquina?.numero_serie || 'N/A'}
+                            </small>
+                          </div>
+                        </td>
+                        <td>
+                          <div style={{ maxWidth: '200px' }}>
+                            <span className="text-truncate d-block" title={orden.descripcion}>
+                              {orden.descripcion || 'Sin descripción'}
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          <span className={`badge bg-${tipoColors[orden.tipo?.toLowerCase()] || 'secondary'}`}>
+                            {orden.tipo || 'N/A'}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={`badge bg-${prioridadColors[orden.prioridad?.toLowerCase()] || 'secondary'}`}>
+                            {orden.prioridad || 'N/A'}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="dropdown">
+                            <button 
+                              className={`btn btn-sm btn-outline-${estadoColors[orden.estado]} dropdown-toggle`}
+                              type="button" 
+                              data-bs-toggle="dropdown"
+                            >
+                              <i className={`bi ${estadoIcons[orden.estado]} me-1`}></i>
+                              {orden.estado?.replace('_', ' ') || 'N/A'}
+                            </button>
+                            <ul className="dropdown-menu">
+                              <li>
+                                <button 
+                                  className="dropdown-item"
+                                  onClick={() => handleCambiarEstado(orden.id, 'pendiente')}
+                                >
+                                  <i className="bi bi-clock me-2"></i>Pendiente
+                                </button>
+                              </li>
+                              <li>
+                                <button 
+                                  className="dropdown-item"
+                                  onClick={() => handleCambiarEstado(orden.id, 'asignada')}
+                                >
+                                  <i className="bi bi-person-check me-2"></i>Asignada
+                                </button>
+                              </li>
+                              <li>
+                                <button 
+                                  className="dropdown-item"
+                                  onClick={() => handleCambiarEstado(orden.id, 'en_proceso')}
+                                >
+                                  <i className="bi bi-gear me-2"></i>En Proceso
+                                </button>
+                              </li>
+                              <li>
+                                <button 
+                                  className="dropdown-item"
+                                  onClick={() => handleCambiarEstado(orden.id, 'completada')}
+                                >
+                                  <i className="bi bi-check-circle me-2"></i>Completada
+                                </button>
+                              </li>
+                              <li><hr className="dropdown-divider" /></li>
+                              <li>
+                                <button 
+                                  className="dropdown-item text-danger"
+                                  onClick={() => handleCambiarEstado(orden.id, 'cancelada')}
+                                >
+                                  <i className="bi bi-x-circle me-2"></i>Cancelar
+                                </button>
+                              </li>
+                            </ul>
+                          </div>
+                        </td>
+                        <td>
+                          {orden.tecnico ? (
+                            <div>
+                              <div className="fw-semibold text-success">
+                                <i className="bi bi-person-check me-1"></i>
+                                {orden.tecnico.nombre}
+                              </div>
+                              <small className="text-muted">{orden.tecnico.email}</small>
+                            </div>
+                          ) : (
+                            <span className="text-muted">
+                              <i className="bi bi-person-x me-1"></i>
+                              Sin asignar
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          <small className="text-muted">
+                            {formatearFecha(orden.fechaCreacion)}
+                          </small>
+                        </td>
+                        <td>
+                          <span className="badge bg-info">
+                            {orden.tiempoEstimado ? `${orden.tiempoEstimado}h` : 'N/A'}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="btn-group" role="group">
+                            <button 
+                              className="btn btn-sm btn-outline-primary"
+                              onClick={() => {
+                                setOrdenSeleccionada(orden);
+                                setShowDetalleModal(true);
+                              }}
+                              title="Ver detalles"
+                            >
+                              <i className="bi bi-eye"></i>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
                     ))}
                   </tbody>
                 </table>
@@ -339,59 +470,126 @@ export default function OrdenesTrabajoAdmin() {
           </div>
         </div>
 
-        {/* Modal Asignar Técnico */}
-        {showAsignarModal && (
+        {/* Modal Detalle de Orden */}
+        {showDetalleModal && ordenSeleccionada && (
           <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-            <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-dialog modal-lg modal-dialog-centered">
               <div className="modal-content">
                 <div className="modal-header">
-                  <h5 className="modal-title">Asignar Técnico</h5>
+                  <h5 className="modal-title">
+                    <i className="bi bi-clipboard-data me-2"></i>
+                    Detalle de Orden de Trabajo
+                  </h5>
                   <button 
                     type="button" 
-                    className="btn-close" 
-                    onClick={() => setShowAsignarModal(false)}
+                    className="btn-close"
+                    onClick={() => setShowDetalleModal(false)}
                   ></button>
                 </div>
                 <div className="modal-body">
-                  <div className="mb-3">
-                    <h6>Orden de Trabajo</h6>
-                    <p className="text-muted mb-1">
-                      <strong>{ordenSeleccionada?.codigo}</strong> - {ordenSeleccionada?.maquina?.nombre}
-                    </p>
-                    <p className="small text-muted">{ordenSeleccionada?.descripcion}</p>
-                  </div>
-                  
-                  <div className="mb-3">
-                    <label className="form-label">Seleccionar Técnico:</label>
-                    <select 
-                      className="form-select"
-                      value={tecnicoSeleccionado}
-                      onChange={(e) => setTecnicoSeleccionado(e.target.value)}
-                    >
-                      <option value="">Seleccione un técnico...</option>
-                      {tecnicos.map(tecnico => (
-                        <option key={tecnico.id} value={tecnico.id}>
-                          {tecnico.nombre} - {tecnico.especialidad}
-                        </option>
-                      ))}
-                    </select>
+                  <div className="row g-3">
+                    <div className="col-md-6">
+                      <label className="form-label fw-bold">Código:</label>
+                      <p className="form-control-plaintext">
+                        {ordenSeleccionada.codigo || `OT-${ordenSeleccionada.id.toString().padStart(4, '0')}`}
+                      </p>
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label fw-bold">Estado:</label>
+                      <p className="form-control-plaintext">
+                        <span className={`badge bg-${estadoColors[ordenSeleccionada.estado]}`}>
+                          <i className={`bi ${estadoIcons[ordenSeleccionada.estado]} me-1`}></i>
+                          {ordenSeleccionada.estado?.replace('_', ' ')}
+                        </span>
+                      </p>
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label fw-bold">Máquina:</label>
+                      <p className="form-control-plaintext">
+                        {ordenSeleccionada.maquina?.nombre || 'N/A'}
+                        <br />
+                        <small className="text-muted">
+                          Serie: {ordenSeleccionada.maquina?.numero_serie || 'N/A'}
+                        </small>
+                      </p>
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label fw-bold">Técnico Asignado:</label>
+                      <p className="form-control-plaintext">
+                        {ordenSeleccionada.tecnico ? (
+                          <>
+                            <i className="bi bi-person-check text-success me-1"></i>
+                            {ordenSeleccionada.tecnico.nombre}
+                            <br />
+                            <small className="text-muted">{ordenSeleccionada.tecnico.email}</small>
+                          </>
+                        ) : (
+                          <span className="text-muted">
+                            <i className="bi bi-person-x me-1"></i>
+                            Sin asignar
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label fw-bold">Tipo:</label>
+                      <p className="form-control-plaintext">
+                        <span className={`badge bg-${tipoColors[ordenSeleccionada.tipo?.toLowerCase()] || 'secondary'}`}>
+                          {ordenSeleccionada.tipo || 'N/A'}
+                        </span>
+                      </p>
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label fw-bold">Prioridad:</label>
+                      <p className="form-control-plaintext">
+                        <span className={`badge bg-${prioridadColors[ordenSeleccionada.prioridad?.toLowerCase()] || 'secondary'}`}>
+                          {ordenSeleccionada.prioridad || 'N/A'}
+                        </span>
+                      </p>
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label fw-bold">Tiempo Estimado:</label>
+                      <p className="form-control-plaintext">
+                        <span className="badge bg-info">
+                          {ordenSeleccionada.tiempoEstimado ? `${ordenSeleccionada.tiempoEstimado} horas` : 'N/A'}
+                        </span>
+                      </p>
+                    </div>
+                    <div className="col-12">
+                      <label className="form-label fw-bold">Descripción:</label>
+                      <p className="form-control-plaintext">
+                        {ordenSeleccionada.descripcion || 'Sin descripción'}
+                      </p>
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label fw-bold">Fecha de Creación:</label>
+                      <p className="form-control-plaintext">
+                        {formatearFecha(ordenSeleccionada.fechaCreacion)}
+                      </p>
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label fw-bold">Fecha de Asignación:</label>
+                      <p className="form-control-plaintext">
+                        {formatearFecha(ordenSeleccionada.fechaAsignacion)}
+                      </p>
+                    </div>
+                    {ordenSeleccionada.notasTecnico && (
+                      <div className="col-12">
+                        <label className="form-label fw-bold">Notas del Técnico:</label>
+                        <p className="form-control-plaintext">
+                          {ordenSeleccionada.notasTecnico}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="modal-footer">
                   <button 
                     type="button" 
-                    className="btn btn-secondary" 
-                    onClick={() => setShowAsignarModal(false)}
+                    className="btn btn-secondary"
+                    onClick={() => setShowDetalleModal(false)}
                   >
-                    Cancelar
-                  </button>
-                  <button 
-                    type="button" 
-                    className="btn btn-primary"
-                    onClick={handleAsignarTecnico}
-                    disabled={!tecnicoSeleccionado}
-                  >
-                    Asignar Técnico
+                    Cerrar
                   </button>
                 </div>
               </div>
@@ -400,99 +598,5 @@ export default function OrdenesTrabajoAdmin() {
         )}
       </div>
     </div>
-  );
-}
-
-function OrdenTrabajoRow({ orden, onAsignarTecnico, onCambiarEstado }) {
-  const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  return (
-    <tr>
-      <td>
-        <strong className="text-primary">{orden.codigo}</strong>
-      </td>
-      <td>
-        <div>
-          <strong>{orden.maquina.nombre}</strong>
-          <br />
-          <small className="text-muted">Serie: {orden.maquina.numero_serie}</small>
-        </div>
-      </td>
-      <td>
-        <div style={{ maxWidth: '200px' }}>
-          <p className="mb-1 small">{orden.descripcion}</p>
-          {orden.cliente_comentarios && (
-            <small className="text-muted">
-              <i className="bi bi-chat-quote me-1"></i>
-              {orden.cliente_comentarios}
-            </small>
-          )}
-        </div>
-      </td>
-      <td>
-        <span className={`badge bg-${prioridadColors[orden.prioridad]}`}>
-          {orden.prioridad}
-        </span>
-      </td>
-      <td>
-        <span className={`badge bg-${estadoColors[orden.estado]}`}>
-          <i className={`bi ${estadoIcons[orden.estado]} me-1`}></i>
-          {orden.estado.replace('_', ' ').toUpperCase()}
-        </span>
-      </td>
-      <td>
-        {orden.tecnico_asignado ? (
-          <div>
-            <strong>{orden.tecnico_asignado.nombre}</strong>
-            <br />
-            <small className="text-muted">{orden.tecnico_asignado.especialidad}</small>
-          </div>
-        ) : (
-          <span className="text-muted">Sin asignar</span>
-        )}
-      </td>
-      <td>
-        <small>{formatDate(orden.fecha_creacion)}</small>
-      </td>
-      <td>
-        <div className="btn-group-vertical btn-group-sm">
-          {orden.estado === 'pendiente' && (
-            <button 
-              className="btn btn-outline-primary btn-sm"
-              onClick={() => onAsignarTecnico(orden)}
-            >
-              <i className="bi bi-person-plus me-1"></i>
-              Asignar
-            </button>
-          )}
-          
-          {orden.estado === 'asignada' && (
-            <button 
-              className="btn btn-outline-info btn-sm"
-              onClick={() => onCambiarEstado(orden.id, 'en_proceso')}
-            >
-              <i className="bi bi-play me-1"></i>
-              Iniciar
-            </button>
-          )}
-          
-          {orden.estado === 'en_proceso' && (
-            <button 
-              className="btn btn-outline-success btn-sm"
-              onClick={() => onCambiarEstado(orden.id, 'completada')}
-            >
-              <i className="bi bi-check me-1"></i>
-              Completar
-            </button>
-          )}
-        </div>
-      </td>
-    </tr>
   );
 }

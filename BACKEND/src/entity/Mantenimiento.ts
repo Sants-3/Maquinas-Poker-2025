@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { OrdenTrabajo } from './OrdenesTrabajo';
-import { Tecnico } from './Tecnico';
+import { User } from './User';
 
 @Entity('mantenimientos')
 export class Mantenimiento {
@@ -35,9 +35,9 @@ export class Mantenimiento {
   @Column({type: 'datetime', nullable: true})
   fecha_realizacion?: Date;
 
-  @ManyToOne(() => Tecnico)
+  @ManyToOne(() => User)
   @JoinColumn({ name: 'tecnico_id' })
-  tecnico?: Tecnico;
+  tecnico?: User;
 
   @Column({nullable: true})
   resultado?: string;

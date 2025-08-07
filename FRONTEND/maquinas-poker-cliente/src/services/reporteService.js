@@ -7,118 +7,40 @@ export const reporteService = {
     try {
       const { maquinaId, descripcion, gravedad } = reporteData;
       
-      // 1. Primero obtener los datos actuales de la máquina
-      const maquinaResponse = await fetch(`${API_BASE_URL}/api/maquinas?id=${maquinaId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!maquinaResponse.ok) {
-        throw new Error('Error al obtener datos de la máquina');
-      }
-
-      const maquinas = await maquinaResponse.json();
-      const maquina = Array.isArray(maquinas) ? maquinas.find(m => m.id === maquinaId) : maquinas;
-      
-      if (!maquina) {
-        throw new Error('Máquina no encontrada');
-      }
-
-      // 2. Determinar el nuevo estado basado en la gravedad
-      let nuevoEstado = maquina.estado;
-      switch (gravedad) {
-        case 'Crítica':
-          nuevoEstado = 'Fuera de Servicio';
-          break;
-        case 'Alta':
-          nuevoEstado = 'Error';
-          break;
-        case 'Media':
-          nuevoEstado = 'Advertencia';
-          break;
-        case 'Baja':
-          nuevoEstado = 'En Mantenimiento';
-          break;
-        default:
-          nuevoEstado = 'En Mantenimiento';
-      }
-
-      // 3. Crear el texto del reporte para las notas
-      const fechaReporte = new Date().toLocaleString('es-ES');
-      const reporteTexto = `\n[REPORTE CLIENTE - ${fechaReporte}]\nGravedad: ${gravedad}\nDescripción: ${descripcion}\nEstado anterior: ${maquina.estado} -> Nuevo estado: ${nuevoEstado}\n---`;
-      
-      const notasActualizadas = `${maquina.notas || ''}${reporteTexto}`;
-
-      // 4. Actualizar la máquina con el nuevo estado
-      const updateMaquinaData = {
-        id: maquina.id,
-        estado: nuevoEstado,
-        notas: notasActualizadas
+      const requestBody = {
+        maquina_id: maquinaId,
+        descripcion: descripcion,
+        gravedad: gravedad,
+        tipo: 'reporte_problema',
+        estado: 'pendiente'
       };
-
-      const updateResponse = await fetch(`${API_BASE_URL}/api/maquinas`, {
-        method: 'PUT',
+      
+      console.log('Enviando POST a /api/reportes-cliente con:', requestBody);
+      
+      const response = await fetch(`${API_BASE_URL}/api/reportes-cliente`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(updateMaquinaData)
+        body: JSON.stringify(requestBody)
       });
 
-      if (!updateResponse.ok) {
-        const errorData = await updateResponse.json();
-        console.error('Error al actualizar máquina:', errorData);
-        
-        // Si falla la actualización, al menos guardar el reporte
-        const reportesExistentes = JSON.parse(localStorage.getItem('reportes_clientes') || '[]');
-        const nuevoReporte = {
-          id: Date.now(),
-          maquinaId: maquinaId,
-          maquinaNombre: maquina.nombre,
-          maquinaSerie: maquina.numero_serie,
-          descripcion: descripcion,
-          gravedad: gravedad,
-          fecha: new Date().toISOString(),
-          estado: 'pendiente',
-          tipo: 'reporte_problema',
-          estadoAnterior: maquina.estado,
-          nuevoEstadoSugerido: nuevoEstado
-        };
-        
-        reportesExistentes.push(nuevoReporte);
-        localStorage.setItem('reportes_clientes', JSON.stringify(reportesExistentes));
-
-        throw new Error(`No se pudo actualizar el estado de la máquina. ${errorData.error || 'Error desconocido'}. El reporte se ha guardado para revisión del administrador.`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al crear el reporte');
       }
 
-      // 5. Si la actualización fue exitosa, también guardar el reporte
-      const reportesExistentes = JSON.parse(localStorage.getItem('reportes_clientes') || '[]');
-      const nuevoReporte = {
-        id: Date.now(),
-        maquinaId: maquinaId,
-        maquinaNombre: maquina.nombre,
-        maquinaSerie: maquina.numero_serie,
-        descripcion: descripcion,
-        gravedad: gravedad,
-        fecha: new Date().toISOString(),
-        estado: 'procesado',
-        tipo: 'reporte_problema',
-        estadoAnterior: maquina.estado,
-        nuevoEstado: nuevoEstado
-      };
+      const result = await response.json();
+      console.log('Respuesta del backend:', result);
       
-      reportesExistentes.push(nuevoReporte);
-      localStorage.setItem('reportes_clientes', JSON.stringify(reportesExistentes));
-
       return {
         success: true,
-        message: `Reporte enviado correctamente. Estado cambiado de "${maquina.estado}" a "${nuevoEstado}".`,
-        reporte: nuevoReporte,
-        maquina: maquina,
-        nuevoEstado: nuevoEstado
+        message: result.message || 'Reporte enviado correctamente',
+        estado_anterior: result.estado_anterior || result.estadoAnterior,
+        nuevoEstado: result.nuevo_estado || result.nuevoEstado || result.estadoNuevo,
+        nuevo_estado: result.nuevo_estado || result.nuevoEstado || result.estadoNuevo
       };
-
     } catch (error) {
       console.error('Error en reportarProblema:', error);
       throw error;
@@ -128,52 +50,31 @@ export const reporteService = {
   // Marcar máquina como operativa (crear reporte de confirmación)
   async marcarComoOperativa(token, maquinaId) {
     try {
-      // 1. Obtener datos actuales de la máquina
-      const maquinaResponse = await fetch(`${API_BASE_URL}/api/maquinas?id=${maquinaId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/reportes-cliente`, {
+        method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        }
+        },
+        body: JSON.stringify({
+          maquina_id: maquinaId,
+          descripcion: 'Cliente confirma que la máquina funciona correctamente',
+          gravedad: 'Baja',
+          tipo: 'confirmacion_operativa',
+          estado: 'pendiente'
+        })
       });
 
-      if (!maquinaResponse.ok) {
-        throw new Error('Error al obtener datos de la máquina');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al crear la confirmación');
       }
 
-      const maquinas = await maquinaResponse.json();
-      const maquina = Array.isArray(maquinas) ? maquinas.find(m => m.id === maquinaId) : maquinas;
-      
-      if (!maquina) {
-        throw new Error('Máquina no encontrada');
-      }
-
-      // 2. Crear un registro de confirmación
-      const fechaConfirmacion = new Date().toLocaleString('es-ES');
-      const confirmacionTexto = `\n[CONFIRMACIÓN CLIENTE - ${fechaConfirmacion}]\nEl cliente confirma que la máquina está funcionando correctamente\nEstado actual: ${maquina.estado}\n---`;
-
-      // 3. Simular el envío de la confirmación
-      const reportesExistentes = JSON.parse(localStorage.getItem('reportes_clientes') || '[]');
-      const nuevaConfirmacion = {
-        id: Date.now(),
-        maquinaId: maquinaId,
-        maquinaNombre: maquina.nombre,
-        maquinaSerie: maquina.numero_serie,
-        descripcion: 'Cliente confirma que la máquina funciona correctamente',
-        gravedad: 'Baja',
-        fecha: new Date().toISOString(),
-        estado: 'confirmado',
-        tipo: 'confirmacion_operativa',
-        estadoAnterior: maquina.estado
-      };
-      
-      reportesExistentes.push(nuevaConfirmacion);
-      localStorage.setItem('reportes_clientes', JSON.stringify(reportesExistentes));
-
+      const result = await response.json();
       return {
         success: true,
-        message: 'Confirmación enviada. El administrador podrá actualizar el estado de la máquina.',
-        confirmacion: nuevaConfirmacion
+        message: result.message || 'Confirmación enviada correctamente'
       };
-
     } catch (error) {
       console.error('Error en marcarComoOperativa:', error);
       throw error;
@@ -203,31 +104,69 @@ export const reporteService = {
   },
 
   // Obtener reportes de clientes (para el administrador)
-  async obtenerReportesClientes() {
+  async obtenerReportesClientes(token) {
     try {
-      const reportes = JSON.parse(localStorage.getItem('reportes_clientes') || '[]');
-      return reportes.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+      const response = await fetch(`${API_BASE_URL}/api/reportes-cliente`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
     } catch (error) {
       console.error('Error en obtenerReportesClientes:', error);
-      return [];
+      throw error;
     }
   },
 
-  // Marcar reporte como procesado (para el administrador)
-  async marcarReporteProcesado(reporteId) {
+  // Obtener reportes por estado
+  async obtenerReportesPorEstado(token, estado) {
     try {
-      const reportes = JSON.parse(localStorage.getItem('reportes_clientes') || '[]');
-      const reporteIndex = reportes.findIndex(r => r.id === reporteId);
-      
-      if (reporteIndex !== -1) {
-        reportes[reporteIndex].estado = 'procesado';
-        reportes[reporteIndex].fechaProcesado = new Date().toISOString();
-        localStorage.setItem('reportes_clientes', JSON.stringify(reportes));
+      const response = await fetch(`${API_BASE_URL}/api/reportes-cliente?estado=${estado}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
-      
-      return { success: true };
+
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
     } catch (error) {
-      console.error('Error en marcarReporteProcesado:', error);
+      console.error('Error en obtenerReportesPorEstado:', error);
+      throw error;
+    }
+  },
+
+  // Actualizar reporte
+  async actualizarReporte(token, reporteData) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/reportes-cliente`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(reporteData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al actualizar el reporte');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error en actualizarReporte:', error);
       throw error;
     }
   }

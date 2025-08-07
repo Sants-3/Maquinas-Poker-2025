@@ -43,13 +43,13 @@ export default function LoginPage() {
       
       switch (rol) {
         case 'admin':
-          router.push('/admin');
+          router.push('/admin/DashboardAdmin');
           break;
         case 'cliente':
-          router.push('/cliente');
+          router.push('/cliente/DashboardCliente');
           break;
         case 'tecnico':
-          router.push('/tecnico');
+          router.push('/tecnico/DashboardTecnico');
           break;
         default:
           router.push('/');

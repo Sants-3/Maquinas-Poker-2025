@@ -5,6 +5,9 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { reporteService } from '@/services/reporteService';
+import ClienteNavbar from '@/components/ClienteNavbar';
+import Link from 'next/link';
 
 export default function DashboardCliente() {
   const [maquinas, setMaquinas] = useState([]);
@@ -50,19 +53,7 @@ export default function DashboardCliente() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:4000/api/maquinas', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.accessToken}`
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error('Error al cargar las máquinas');
-        }
-
-        const data = await response.json();
+        const data = await reporteService.obtenerMaquinasCliente(session.accessToken);
         setMaquinas(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error('Error al cargar máquinas:', err);
@@ -149,16 +140,52 @@ export default function DashboardCliente() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#f8f9fa' }}>
-      <div className="container-fluid py-4">
+    <>
+      <ClienteNavbar />
+      <div className="min-h-screen" style={{ backgroundColor: '#f8f9fa' }}>
+        <div className="container-fluid py-4">
         {/* Header */}
         <div className="row mb-4">
           <div className="col">
-            <h1 className="h2 mb-1 text-dark">
-              <i className="bi bi-cpu me-2" style={{ color: '#6f42c1' }}></i>
-              Mis Máquinas de Póker
-            </h1>
-            <p className="text-muted mb-0">Gestiona y monitorea el estado de tus máquinas asignadas</p>
+            <div className="d-flex justify-content-between align-items-start flex-wrap">
+              <div className="mb-3 mb-md-0">
+                <h1 className="h2 mb-1 text-dark">
+                  <i className="bi bi-cpu me-2" style={{ color: '#6f42c1' }}></i>
+                  Mis Máquinas de Póker
+                </h1>
+                <p className="text-muted mb-2">Gestiona y monitorea el estado de tus máquinas asignadas</p>
+                {/* Información del cliente loggeado */}
+                <div className="d-flex align-items-center">
+                  <div className="bg-light rounded-pill px-3 py-2 d-flex align-items-center">
+                    <i className="bi bi-person-circle me-2" style={{ color: '#6f42c1', fontSize: '1.2rem' }}></i>
+                    <div>
+                      <small className="text-muted d-block" style={{ fontSize: '0.75rem' }}>Cliente:</small>
+                      <strong className="text-dark" style={{ fontSize: '0.9rem' }}>{session?.user?.name}</strong>
+                    </div>
+                    <div className="ms-3 ps-3 border-start">
+                      <small className="text-muted d-block" style={{ fontSize: '0.75rem' }}>Email:</small>
+                      <small className="text-dark fw-semibold" style={{ fontSize: '0.8rem' }}>{session?.user?.email}</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Botones de navegación */}
+              <div className="d-flex gap-2 flex-wrap">
+                <button className="btn btn-primary active" disabled>
+                  <i className="bi bi-speedometer2 me-2"></i>
+                  Dashboard
+                </button>
+                <Link href="/cliente/InventarioSimple" className="btn btn-outline-primary">
+                  <i className="bi bi-boxes me-2"></i>
+                  Inventario
+                </Link>
+                <Link href="/cliente/ReporteInventario" className="btn btn-outline-primary">
+                  <i className="bi bi-file-earmark-text me-2"></i>
+                  Reportes
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -447,7 +474,8 @@ export default function DashboardCliente() {
             )}
           </>
         )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

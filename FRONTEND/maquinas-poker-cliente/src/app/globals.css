@@ -24,3 +24,91 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Estilos adicionales para mejorar la apariencia */
+.hover-shadow {
+  transition: box-shadow 0.3s ease;
+}
+
+.hover-shadow:hover {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+.min-h-screen {
+  min-height: 100vh;
+}
+
+/* Animación de rotación para el botón de actualizar */
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Estilos para la navbar del cliente */
+.hover-link {
+  transition: all 0.3s ease;
+}
+
+.hover-link:hover {
+  background-color: rgba(111, 66, 193, 0.1) !important;
+  color: #6f42c1 !important;
+  transform: translateY(-1px);
+}
+
+.navbar-brand:hover {
+  transform: scale(1.05);
+  transition: transform 0.3s ease;
+}
+
+/* Mejoras para el dropdown */
+.dropdown-menu {
+  border: none;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  border-radius: 0.5rem;
+}
+
+.dropdown-item:hover {
+  background-color: rgba(111, 66, 193, 0.1);
+  color: #6f42c1;
+}
+
+/* Estilos para los botones de navegación en el header */
+.btn-outline-primary {
+  border-color: #6f42c1;
+  color: #6f42c1;
+  transition: all 0.3s ease;
+}
+
+.btn-outline-primary:hover {
+  background-color: #6f42c1;
+  border-color: #6f42c1;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(111, 66, 193, 0.3);
+}
+
+.btn-primary {
+  background-color: #6f42c1;
+  border-color: #6f42c1;
+}
+
+.btn-primary:hover {
+  background-color: #5a2d91;
+  border-color: #5a2d91;
+}
+
+.btn-primary.active {
+  background-color: #6f42c1;
+  border-color: #6f42c1;
+  box-shadow: 0 2px 4px rgba(111, 66, 193, 0.4);
+}
+
+/* Información del cliente en el dashboard */
+.bg-light {
+  background-color: #f8f9fa !important;
+  border: 1px solid #e9ecef;
+}

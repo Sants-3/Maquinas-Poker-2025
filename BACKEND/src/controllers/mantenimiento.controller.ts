@@ -1,5 +1,4 @@
 import { Mantenimiento } from '@/entity/Mantenimiento';
-import { Tecnico } from '@/entity/Tecnico';
 import { createMantenimientoService, deleteMantenimientoService,
     getAllMantenimientosService, updateMantenimientoService
  } from '@/services/mantenimiento.service';

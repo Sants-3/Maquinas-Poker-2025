@@ -5,19 +5,23 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { reporteService } from '@/services/reporteService';
+import ClienteNavbar from '@/components/ClienteNavbar';
+import Link from 'next/link';
 
 const statusColors = {
   'Operativo': 'success',
   'En Mantenimiento': 'warning',
   'Advertencia': 'warning',
-  'Error': 'danger'
+  'Error': 'danger',
+  'Fuera de Servicio': 'danger'
 };
 
 const statusIcons = {
   'Operativo': 'bi-check-circle-fill',
   'En Mantenimiento': 'bi-tools',
   'Advertencia': 'bi-exclamation-triangle-fill',
-  'Error': 'bi-x-circle-fill'
+  'Error': 'bi-x-octagon-fill',
+  'Fuera de Servicio': 'bi-x-octagon-fill'
 };
 
 export default function ReporteInventario() {
@@ -69,22 +73,44 @@ export default function ReporteInventario() {
 
     setIsLoading(true);
     try {
+      console.log('Enviando reporte con datos:', {
+        maquinaId: selectedMachine.id,
+        descripcion: reportData.description,
+        gravedad: reportData.severity
+      });
+
       const resultado = await reporteService.reportarProblema(session.accessToken, {
         maquinaId: selectedMachine.id,
         descripcion: reportData.description,
         gravedad: reportData.severity
       });
 
-      // Recargar las máquinas (aunque el estado no cambie inmediatamente)
+      console.log('Resultado del reporte:', resultado);
+
+      // Recargar las máquinas para ver el cambio de estado
       const updatedMachines = await reporteService.obtenerMaquinasCliente(session.accessToken);
       setMachines(updatedMachines);
 
       setShowReportModal(false);
       setReportData({ description: '', severity: 'Media' });
-      toast.success(resultado.message);
-      toast.info('El administrador revisará su reporte y actualizará el estado de la máquina.', {
-        autoClose: 5000
-      });
+      
+      // Mostrar mensaje de éxito
+      toast.success(resultado.message || 'Reporte enviado correctamente');
+      
+      // Mostrar información sobre el cambio de estado
+      if (resultado.estado_anterior && resultado.nuevoEstado) {
+        toast.info(`Estado cambiado de "${resultado.estado_anterior}" a "${resultado.nuevoEstado}"`, {
+          autoClose: 5000
+        });
+      } else if (resultado.nuevo_estado) {
+        toast.info(`Máquina marcada como "${resultado.nuevo_estado}"`, {
+          autoClose: 5000
+        });
+      } else {
+        toast.info('Reporte procesado. El estado de la máquina será actualizado.', {
+          autoClose: 5000
+        });
+      }
     } catch (err) {
       console.error('Error al enviar reporte:', err);
       toast.error(err.message);
@@ -114,6 +140,11 @@ export default function ReporteInventario() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleReportProblem = (machine) => {
+    setSelectedMachine(machine);
+    setShowReportModal(true);
   };
 
   if (isLoading) {
@@ -156,20 +187,42 @@ export default function ReporteInventario() {
     operational: machines.filter(m => m.estado === 'Operativo'),
     maintenance: machines.filter(m => m.estado === 'En Mantenimiento'),
     warning: machines.filter(m => m.estado === 'Advertencia'),
-    error: machines.filter(m => m.estado === 'Error')
+    outOfService: machines.filter(m => m.estado === 'Error' || m.estado === 'Fuera de Servicio')
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#f8f9fa' }}>
-      <div className="container-fluid py-4">
+    <>
+      <ClienteNavbar />
+      <div className="min-h-screen" style={{ backgroundColor: '#f8f9fa' }}>
+        <div className="container-fluid py-4">
         {/* Header */}
         <div className="row mb-4">
           <div className="col">
-            <h1 className="h2 mb-1 text-dark">
-              <i className="bi bi-clipboard-check me-2" style={{ color: '#6f42c1' }}></i>
-              Reporte de Estado de Máquinas
-            </h1>
-            <p className="text-muted mb-0">Reporta problemas o confirma el buen funcionamiento de tus máquinas</p>
+            <div className="d-flex justify-content-between align-items-start flex-wrap">
+              <div className="mb-3 mb-md-0">
+                <h1 className="h2 mb-1 text-dark">
+                  <i className="bi bi-clipboard-check me-2" style={{ color: '#6f42c1' }}></i>
+                  Reporte de Estado de Máquinas
+                </h1>
+                <p className="text-muted mb-0">Reporta problemas o confirma el buen funcionamiento de tus máquinas</p>
+              </div>
+              
+              {/* Botones de navegación */}
+              <div className="d-flex gap-2 flex-wrap">
+                <Link href="/cliente/DashboardCliente" className="btn btn-outline-primary">
+                  <i className="bi bi-speedometer2 me-2"></i>
+                  Dashboard
+                </Link>
+                <Link href="/cliente/InventarioSimple" className="btn btn-outline-primary">
+                  <i className="bi bi-boxes me-2"></i>
+                  Inventario
+                </Link>
+                <button className="btn btn-primary active" disabled>
+                  <i className="bi bi-file-earmark-text me-2"></i>
+                  Reportes
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -215,14 +268,14 @@ export default function ReporteInventario() {
           </div>
 
           <div className="col-md-6 col-lg-3">
-            <div className="card border-0 shadow-sm h-100" style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}>
+            <div className="card border-0 shadow-sm h-100" style={{ background: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)' }}>
               <div className="card-body text-white">
                 <div className="d-flex justify-content-between align-items-center mb-2">
-                  <h6 className="card-title mb-0 fw-semibold opacity-75">Con Errores</h6>
-                  <i className="bi bi-x-circle-fill fs-4 opacity-75"></i>
+                  <h6 className="card-title mb-0 fw-semibold opacity-75">Fuera de Servicio</h6>
+                  <i className="bi bi-x-octagon-fill fs-4 opacity-75"></i>
                 </div>
-                <h2 className="mb-1 fw-bold">{filteredMachines.error.length}</h2>
-                <small className="opacity-75">Fuera de servicio</small>
+                <h2 className="mb-1 fw-bold">{filteredMachines.outOfService.length}</h2>
+                <small className="opacity-75">Máquinas no operativas</small>
               </div>
             </div>
           </div>
@@ -312,9 +365,7 @@ export default function ReporteInventario() {
                     <MachineCard 
                       key={machine.id}
                       machine={machine}
-                      onRepair={() => handleMarkAsOperational(machine.id)}
                       disabled={isLoading}
-                      showRepairButton
                     />
                   ))}
                 </div>
@@ -329,34 +380,64 @@ export default function ReporteInventario() {
           </div>
         </div>
 
-        {/* Máquinas con Errores */}
-        <div className="mb-5">
-          <div className="card border-0 shadow-sm">
-            <div className="card-header" style={{ backgroundColor: '#f093fb', background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}>
-              <h3 className="h5 mb-0 text-white">
-                <i className={`bi ${statusIcons['Error']} me-2`}></i>
-                Máquinas con Errores ({filteredMachines.error.length})
-              </h3>
-            </div>
-            <div className="card-body" style={{ backgroundColor: '#ffffff' }}>
-              {filteredMachines.error.length > 0 ? (
-                <div className="row g-3">
-                  {filteredMachines.error.map(machine => (
-                    <MachineCard 
-                      key={machine.id}
-                      machine={machine}
-                      disabled={isLoading}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-4">
-                  <i className="bi bi-x-circle display-1 text-muted mb-3"></i>
-                  <h5 className="text-muted">No hay máquinas con errores</h5>
-                  <p className="text-muted">Excelente, todas tus máquinas están funcionando</p>
-                </div>
-              )}
-            </div>
+        {/* Máquinas Fuera de Servicio */}
+        <div className="card border-0 shadow-sm mb-4">
+          <div className="card-header bg-danger text-white py-3">
+            <h5 className="mb-0">
+              <i className="bi bi-x-octagon-fill me-2"></i>
+              Máquinas Fuera de Servicio ({filteredMachines.outOfService.length})
+            </h5>
+          </div>
+          <div className="card-body p-0">
+            {filteredMachines.outOfService.length > 0 ? (
+              <div className="table-responsive">
+                {filteredMachines.outOfService.map(machine => (
+                  <div key={machine.id} className="border-bottom p-3">
+                    <div className="row align-items-center">
+                      <div className="col-md-8">
+                        <div className="d-flex align-items-center mb-2">
+                          <span className={`badge bg-${statusColors[machine.estado]} me-2`}>
+                            <i className={`${statusIcons[machine.estado]} me-1`}></i>
+                            {machine.estado === 'Error' ? 'Fuera de Servicio' : machine.estado}
+                          </span>
+                          <h6 className="mb-0 fw-semibold">{machine.nombre}</h6>
+                        </div>
+                        <p className="text-muted mb-1">
+                          <i className="bi bi-geo-alt me-1"></i>
+                          {machine.ubicacion?.nombre || 'Sin ubicación'}
+                        </p>
+                        <p className="text-muted mb-0 small">
+                          <i className="bi bi-hash me-1"></i>
+                          Serie: {machine.numero_serie}
+                        </p>
+                      </div>
+                      <div className="col-md-4 text-md-end">
+                        {machine.estado === 'En Mantenimiento' ? (
+                          <span className="badge bg-warning">En Mantenimiento - Contacte al administrador</span>
+                        ) : machine.estado === 'Error' || machine.estado === 'Fuera de Servicio' ? (
+                          <span className="badge bg-danger">Fuera de Servicio - Contacte al administrador</span>
+                        ) : (
+                          <button
+                            className="btn btn-outline-danger btn-sm"
+                            onClick={() => handleReportProblem(machine)}
+                            title="Reportar problema"
+                          >
+                            <i className="bi bi-exclamation-triangle me-1"></i>
+                            Reportar Problema
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-5">
+                <i className="bi bi-check-circle text-success fs-1 mb-3"></i>
+                <h5 className="text-muted">¡Excelente!</h5>
+                <p className="text-muted mb-0">No hay máquinas fuera de servicio</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -458,8 +539,9 @@ export default function ReporteInventario() {
           </div>
         </div>
       )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -546,6 +628,15 @@ function MachineCard({ machine, onReport, onRepair, showRepairButton = false, di
                 <i className="bi bi-check-circle me-1"></i>
                 Marcar como Operativa
               </button>
+            )}
+            
+            {machine.estado === 'Advertencia' && (
+              <div className="text-center w-100">
+                <small className="text-warning">
+                  <i className="bi bi-tools me-1"></i>
+                  Se está trabajando en el mantenimiento
+                </small>
+              </div>
             )}
             
             {machine.estado === 'Error' && (

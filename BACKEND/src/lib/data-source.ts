@@ -5,7 +5,7 @@ import { User } from '../entity/User';
 import { Ubicacion } from '../entity/Ubicacion';
 import { Transaccion } from '../entity/Transaccion';
 import { TipoTransaccion } from '../entity/TipoTransaccion';
-import { Tecnico } from '../entity/Tecnico';
+
 import { Repuesto } from '../entity/Repuesto';
 import { Proveedor } from '../entity/Proveedor';
 import { OrdenTrabajo } from '../entity/OrdenesTrabajo';
@@ -14,6 +14,7 @@ import { Mantenimiento } from '../entity/Mantenimiento';
 import { Inventario } from '../entity/Inventario';
 import { Finanza } from '../entity/Finanza';
 import { EvidenciaMantenimiento } from '../entity/EvidenciaMantenimiento';
+import { ReporteCliente } from '../entity/ReporteCliente';
 
 export const AppDataSource = new DataSource({
   type: 'mssql',
@@ -23,10 +24,10 @@ export const AppDataSource = new DataSource({
   password: process.env.DB_PASSWORD || 'admin123',
   database: process.env.DB_DATABASE || 'gestion_maquinas_poker',
   // Directorio donde TypeORM mapeará las entidades
-  entities: [User, Ubicacion, Transaccion, TipoTransaccion, Tecnico, Repuesto, Proveedor, OrdenTrabajo,
-    Maquina, Mantenimiento, Inventario, Finanza, EvidenciaMantenimiento
+  entities: [User, Ubicacion, Transaccion, TipoTransaccion, Repuesto, Proveedor, OrdenTrabajo,
+    Maquina, Mantenimiento, Inventario, Finanza, EvidenciaMantenimiento, ReporteCliente
   ],
-  synchronize: false, // Sincronizar entidades solo en desarrollo
+  synchronize: false, // Sincronización deshabilitada para producción
   logging: process.env.NODE_ENV === 'development' ? ['query', 'error'] : ['error'], // Habilitar logging solo en desarrollo
   options: {
     encrypt: false,
